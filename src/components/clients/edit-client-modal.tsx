@@ -21,27 +21,32 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
-import { Plus, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import type { Client } from '@/lib/types'
 
-export function NewClientButton() {
+interface EditClientModalProps {
+  client: Client
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function EditClientModal({ client, open, onOpenChange }: EditClientModalProps) {
   const router = useRouter()
   const supabase = createClient()
-  const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    company: '',
-    status: 'onboarding' as 'onboarding' | 'actif' | 'termine',
-    start_date: new Date().toISOString().split('T')[0],
-    program_name: '',
-    total_amount: '',
-    notes: '',
+    full_name: client.full_name,
+    email: client.email,
+    phone: client.phone ?? '',
+    company: client.company ?? '',
+    status: client.status,
+    start_date: client.start_date ?? new Date().toISOString().split('T')[0],
+    program_name: client.program_name ?? '',
+    total_amount: client.total_amount?.toString() ?? '',
+    notes: client.notes ?? '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,17 +54,9 @@ export function NewClientButton() {
     setLoading(true)
     setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setError('Tu dois être connectée')
-      setLoading(false)
-      return
-    }
-
-    const { error: insertError } = await supabase
+    const { error: updateError } = await supabase
       .from('clients')
-      .insert({
-        infopreneur_id: user.id,
+      .update({
         full_name: formData.full_name,
         email: formData.email,
         phone: formData.phone || null,
@@ -70,91 +67,71 @@ export function NewClientButton() {
         total_amount: formData.total_amount ? parseFloat(formData.total_amount) : null,
         notes: formData.notes || null,
       })
+      .eq('id', client.id)
 
-    if (insertError) {
-      setError(insertError.message)
+    if (updateError) {
+      setError(updateError.message)
       setLoading(false)
     } else {
-      // Reset + ferme + rafraîchit
-      setFormData({
-        full_name: '',
-        email: '',
-        phone: '',
-        company: '',
-        status: 'onboarding',
-        start_date: new Date().toISOString().split('T')[0],
-        program_name: '',
-        total_amount: '',
-        notes: '',
-      })
-      setOpen(false)
       setLoading(false)
+      onOpenChange(false)
       router.refresh()
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-violet-500 hover:bg-violet-600">
-          <Plus className="mr-2 h-4 w-4" />
-          Nouveau client
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouveau client</DialogTitle>
+          <DialogTitle>Modifier le client</DialogTitle>
           <DialogDescription>
-            Ajoute un client à ton portefeuille. Tu pourras éditer ces infos plus tard.
+            Modifie les informations de {client.full_name}.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="full_name">
+            <Label htmlFor="edit_full_name">
               Nom complet <span className="text-red-400">*</span>
             </Label>
             <Input
-              id="full_name"
+              id="edit_full_name"
               value={formData.full_name}
               onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
               required
               disabled={loading}
-              placeholder="Marie Dupont"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">
+            <Label htmlFor="edit_email">
               Email <span className="text-red-400">*</span>
             </Label>
             <Input
-              id="email"
+              id="edit_email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
               disabled={loading}
-              placeholder="marie@exemple.com"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
+              <Label htmlFor="edit_phone">Téléphone</Label>
               <Input
-                id="phone"
+                id="edit_phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 disabled={loading}
                 placeholder="06 12 34 56 78"
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="company">Entreprise</Label>
+              <Label htmlFor="edit_company">Entreprise</Label>
               <Input
-                id="company"
+                id="edit_company"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                 disabled={loading}
@@ -165,14 +142,14 @@ export function NewClientButton() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="status">Statut</Label>
+              <Label>Statut</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value: 'onboarding' | 'actif' | 'termine') =>
                   setFormData({ ...formData, status: value })
                 }
               >
-                <SelectTrigger id="status" disabled={loading}>
+                <SelectTrigger disabled={loading}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -182,11 +159,10 @@ export function NewClientButton() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="start_date">Date de début</Label>
+              <Label htmlFor="edit_start_date">Date de début</Label>
               <Input
-                id="start_date"
+                id="edit_start_date"
                 type="date"
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
@@ -197,20 +173,19 @@ export function NewClientButton() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="program_name">Programme</Label>
+              <Label htmlFor="edit_program_name">Programme</Label>
               <Input
-                id="program_name"
+                id="edit_program_name"
                 value={formData.program_name}
                 onChange={(e) => setFormData({ ...formData, program_name: e.target.value })}
                 disabled={loading}
                 placeholder="ENERGY RESET™"
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="total_amount">Montant total (€)</Label>
+              <Label htmlFor="edit_total_amount">Montant total (€)</Label>
               <Input
-                id="total_amount"
+                id="edit_total_amount"
                 type="number"
                 step="0.01"
                 value={formData.total_amount}
@@ -222,9 +197,9 @@ export function NewClientButton() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes initiales</Label>
+            <Label htmlFor="edit_notes">Notes</Label>
             <Textarea
-              id="notes"
+              id="edit_notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               disabled={loading}
@@ -239,11 +214,11 @@ export function NewClientButton() {
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
               disabled={loading}
             >
               Annuler
@@ -256,10 +231,10 @@ export function NewClientButton() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
+                  Enregistrement...
                 </>
               ) : (
-                'Créer le client'
+                'Enregistrer'
               )}
             </Button>
           </DialogFooter>

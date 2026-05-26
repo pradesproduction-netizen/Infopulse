@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ClientsList } from '@/components/dashboard/clients-list'
 import { NewClientButton } from '@/components/dashboard/new-client-button'
@@ -6,10 +7,12 @@ export default async function ClientsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: clients } = await supabase
     .from('clients')
     .select('*')
-    .eq('infopreneur_id', user!.id)
+    .eq('infopreneur_id', user.id)
     .order('created_at', { ascending: false })
 
   return (
