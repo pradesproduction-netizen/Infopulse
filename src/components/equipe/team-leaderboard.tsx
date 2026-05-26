@@ -21,18 +21,17 @@ function isThisMonth(dateStr: string) {
 }
 
 export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
-  const thisMonthCalls = calls.filter((c) => isThisMonth(c.date))
+  const thisMonthCalls = calls.filter((c) => isThisMonth(c.call_date))
 
   const ranking = teamMembers
     .map((member) => {
       const mc = thisMonthCalls.filter((c) => c.team_member_id === member.id)
       const completed = mc.filter((c) => c.status === 'completed').length
-      const closed = mc.filter((c) => c.is_closed).length
-      const ca = mc.reduce((sum, c) => sum + (c.amount_closed ?? 0), 0)
-      const closingRate = completed > 0 ? Math.round((closed / completed) * 100) : 0
-      return { member, total: mc.length, closingRate, ca }
+      const noShow = mc.filter((c) => c.status === 'no_show').length
+      const showUpRate = completed + noShow > 0 ? Math.round((completed / (completed + noShow)) * 100) : 0
+      return { member, total: mc.length, showUpRate }
     })
-    .sort((a, b) => b.ca - a.ca || b.closingRate - a.closingRate || b.total - a.total)
+    .sort((a, b) => b.showUpRate - a.showUpRate || b.total - a.total)
 
   return (
     <Card className="border-white/10 bg-card/50">
@@ -52,7 +51,7 @@ export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
-                  {['Rang', 'Membre', 'Rôle', 'Appels', 'Closing', 'CA', 'Badge'].map((col) => (
+                  {['Rang', 'Membre', 'Rôle', 'Appels', 'Complétés', 'Show-up', 'Badge'].map((col) => (
                     <th key={col} className="text-left p-3 text-xs font-medium text-muted-foreground">
                       {col}
                     </th>
@@ -60,13 +59,17 @@ export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
                 </tr>
               </thead>
               <tbody>
-                {ranking.map(({ member, total, closingRate, ca }, i) => {
+                {ranking.map(({ member, total, showUpRate }, i) => {
                   const initials = member.full_name
                     .split(' ')
                     .map((n) => n[0])
                     .join('')
                     .toUpperCase()
                     .slice(0, 2)
+
+                  const completed = thisMonthCalls.filter(
+                    (c) => c.team_member_id === member.id && c.status === 'completed'
+                  ).length
 
                   return (
                     <tr
@@ -108,10 +111,8 @@ export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
                         </Badge>
                       </td>
                       <td className="p-3 text-sm">{total}</td>
-                      <td className="p-3 text-sm">{closingRate}%</td>
-                      <td className="p-3 text-sm font-medium">
-                        {ca > 0 ? `${ca.toLocaleString('fr-FR')} €` : '—'}
-                      </td>
+                      <td className="p-3 text-sm">{completed}</td>
+                      <td className="p-3 text-sm">{showUpRate}%</td>
                       <td className="p-3">
                         {i === 0 && total > 0 && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">

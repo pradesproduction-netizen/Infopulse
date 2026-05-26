@@ -67,16 +67,16 @@ export function SessionsTab({ calls }: { calls: Call[]; clientId: string }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 flex-wrap">
                     <p className="text-sm font-medium">
-                      {new Date(call.date).toLocaleDateString('fr-FR', {
+                      {new Date(call.call_date).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                       })}
                     </p>
-                    {call.duration && (
+                    {call.duration_seconds && (
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {call.duration} min
+                        {call.duration_seconds} min
                       </span>
                     )}
                   </div>

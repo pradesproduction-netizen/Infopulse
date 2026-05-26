@@ -38,7 +38,7 @@ export function AddMemberModal() {
       email: form.email.trim(),
       phone: form.phone.trim() || null,
       role: form.role,
-      is_active: true,
+      active: true,
     })
 
     setLoading(false)

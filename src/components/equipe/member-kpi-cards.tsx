@@ -1,13 +1,10 @@
-'use client'
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Phone, TrendingUp, UserCheck, Euro } from 'lucide-react'
+import { Phone, UserCheck, CheckCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Call, TeamMember } from '@/lib/types'
+import type { Call } from '@/lib/types'
 
-interface TeamStatsProps {
+interface MemberKpiCardsProps {
   calls: Call[]
-  teamMembers: TeamMember[]
 }
 
 function isThisMonth(dateStr: string) {
@@ -16,47 +13,46 @@ function isThisMonth(dateStr: string) {
   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
 }
 
-export function TeamStats({ calls, teamMembers }: TeamStatsProps) {
-  const thisMonthCalls = calls.filter((c) => isThisMonth(c.call_date))
-  const completed = thisMonthCalls.filter((c) => c.status === 'completed').length
-  const noShow = thisMonthCalls.filter((c) => c.status === 'no_show').length
-  const showUpRate =
-    completed + noShow > 0 ? Math.round((completed / (completed + noShow)) * 100) : 0
+export function MemberKpiCards({ calls }: MemberKpiCardsProps) {
+  const thisMonth = calls.filter((c) => isThisMonth(c.call_date))
+  const completed = thisMonth.filter((c) => c.status === 'completed').length
+  const noShow = thisMonth.filter((c) => c.status === 'no_show').length
+  const showUpRate = completed + noShow > 0 ? Math.round((completed / (completed + noShow)) * 100) : 0
 
-  const stats = [
+  const kpis = [
     {
       title: 'Appels ce mois',
-      value: String(thisMonthCalls.length),
-      sub: `${teamMembers.filter((m) => m.active).length} membres actifs`,
+      value: String(thisMonth.length),
+      sub: 'Total planifiés + complétés',
       icon: Phone,
       iconBg: 'bg-violet-500',
     },
     {
       title: 'Appels complétés',
       value: String(completed),
-      sub: `${noShow} no-show${noShow !== 1 ? 's' : ''}`,
-      icon: TrendingUp,
+      sub: 'Appels honorés',
+      icon: CheckCircle,
       iconBg: 'bg-green-500',
     },
     {
       title: 'Show-up rate',
       value: `${showUpRate}%`,
-      sub: `${completed} appel${completed !== 1 ? 's' : ''} honoré${completed !== 1 ? 's' : ''}`,
+      sub: `${noShow} no-show${noShow !== 1 ? 's' : ''}`,
       icon: UserCheck,
       iconBg: 'bg-blue-500',
     },
     {
-      title: 'CA équipe',
-      value: '—',
-      sub: 'Données non disponibles',
-      icon: Euro,
-      iconBg: 'bg-orange-500',
+      title: 'No-shows',
+      value: String(noShow),
+      sub: 'Appels non honorés',
+      icon: XCircle,
+      iconBg: 'bg-red-500',
     },
   ]
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map(({ title, value, sub, icon: Icon, iconBg }) => (
+      {kpis.map(({ title, value, sub, icon: Icon, iconBg }) => (
         <Card key={title} className="border-white/10 bg-card/50">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>

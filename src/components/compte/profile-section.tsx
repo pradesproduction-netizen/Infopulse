@@ -20,40 +20,49 @@ export function ProfileSection({ profile, userEmail }: ProfileSectionProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
-    first_name: profile?.first_name ?? '',
-    last_name: profile?.last_name ?? '',
+    full_name: profile?.full_name ?? '',
     phone: profile?.phone ?? '',
+    company: profile?.company ?? '',
     bio: profile?.bio ?? '',
   })
 
   const initials =
-    [form.first_name[0], form.last_name[0]].filter(Boolean).join('').toUpperCase() ||
+    form.full_name
+      .split(' ')
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() ||
     userEmail[0]?.toUpperCase() ||
     'U'
-
-  const displayName =
-    [form.first_name, form.last_name].filter(Boolean).join(' ') || 'Ton nom'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    setError(null)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
-    await supabase.from('profiles').upsert({
+    const { error: dbError } = await supabase.from('profiles').upsert({
       id: user.id,
-      first_name: form.first_name.trim() || null,
-      last_name: form.last_name.trim() || null,
+      full_name: form.full_name.trim() || null,
       phone: form.phone.trim() || null,
+      company: form.company.trim() || null,
       bio: form.bio.trim() || null,
     })
 
     setLoading(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    router.refresh()
+    if (dbError) {
+      setError(dbError.message)
+    } else {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      router.refresh()
+    }
   }
 
   return (
@@ -77,60 +86,50 @@ export function ProfileSection({ profile, userEmail }: ProfileSectionProps) {
               </div>
             </div>
             <div>
-              <p className="font-semibold">{displayName}</p>
+              <p className="font-semibold">{form.full_name || 'Ton nom'}</p>
               <p className="text-sm text-muted-foreground">{userEmail}</p>
-              <button className="text-xs text-violet-400 hover:text-violet-300 mt-1 transition-colors">
-                Changer la photo
-              </button>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first_name">Prénom</Label>
-                <Input
-                  id="first_name"
-                  value={form.first_name}
-                  onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
-                  placeholder="Prénom"
-                  disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Nom</Label>
-                <Input
-                  id="last_name"
-                  value={form.last_name}
-                  onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
-                  placeholder="Nom"
-                  disabled={loading}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Nom complet</Label>
+              <Input
+                id="full_name"
+                value={form.full_name}
+                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                placeholder="Prénom Nom"
+                disabled={loading}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                value={userEmail}
-                disabled
-                className="opacity-60 cursor-not-allowed"
-              />
-              <p className="text-xs text-muted-foreground">
-                L&apos;adresse email ne peut pas être modifiée ici.
-              </p>
+              <Input id="email" value={userEmail} disabled className="opacity-60 cursor-not-allowed" />
+              <p className="text-xs text-muted-foreground">L&apos;adresse email ne peut pas être modifiée ici.</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
-              <Input
-                id="phone"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="+33 6 00 00 00 00"
-                disabled={loading}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Téléphone</Label>
+                <Input
+                  id="phone"
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+33 6 00 00 00 00"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">Entreprise</Label>
+                <Input
+                  id="company"
+                  value={form.company}
+                  onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                  placeholder="Ma Boîte SAS"
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -145,14 +144,16 @@ export function ProfileSection({ profile, userEmail }: ProfileSectionProps) {
               />
             </div>
 
+            {error && (
+              <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>
+            )}
+
             <div className="flex items-center gap-3 pt-2">
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Enregistrer les modifications
               </Button>
-              {saved && (
-                <span className="text-sm text-green-400">Enregistré ✓</span>
-              )}
+              {saved && <span className="text-sm text-green-400">Enregistré ✓</span>}
             </div>
           </form>
         </CardContent>

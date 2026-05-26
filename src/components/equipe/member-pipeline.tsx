@@ -1,5 +1,3 @@
-'use client'
-
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TrendingUp } from 'lucide-react'
@@ -7,8 +5,9 @@ import { cn } from '@/lib/utils'
 import { AddProspectModal } from './add-prospect-modal'
 import type { Prospect } from '@/lib/types'
 
-interface ProspectsPipelineProps {
+interface MemberPipelineProps {
   prospects: Prospect[]
+  memberId: string
 }
 
 const COLUMNS: {
@@ -29,12 +28,7 @@ const COLUMNS: {
 ]
 
 function ProspectCard({ prospect, badgeClass }: { prospect: Prospect; badgeClass: string }) {
-  const initials = prospect.full_name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  const initials = prospect.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
     <Card className="border-white/10 bg-card/80 shadow-sm">
@@ -46,9 +40,7 @@ function ProspectCard({ prospect, badgeClass }: { prospect: Prospect; badgeClass
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate">{prospect.full_name}</p>
             {prospect.estimated_value && (
-              <p className="text-xs text-muted-foreground">
-                {prospect.estimated_value.toLocaleString('fr-FR')} €
-              </p>
+              <p className="text-xs text-muted-foreground">{prospect.estimated_value.toLocaleString('fr-FR')} €</p>
             )}
           </div>
         </div>
@@ -64,7 +56,7 @@ function ProspectCard({ prospect, badgeClass }: { prospect: Prospect; badgeClass
   )
 }
 
-export function ProspectsPipeline({ prospects }: ProspectsPipelineProps) {
+export function MemberPipeline({ prospects }: MemberPipelineProps) {
   return (
     <div>
       <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

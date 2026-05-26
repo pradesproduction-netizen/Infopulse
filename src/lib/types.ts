@@ -1,18 +1,20 @@
 export interface Profile {
   id: string
-  first_name: string | null
-  last_name: string | null
+  full_name: string | null
   email: string | null
   phone: string | null
   bio: string | null
   avatar_url: string | null
+  company: string | null
+  subscription_plan: string | null
 }
 
 export interface Objective {
   id?: string
   infopreneur_id: string
   period: string
-  ca_target: number | null
+  period_start?: string | null
+  revenue_target: number | null
   closing_rate_target: number | null
   show_up_rate_target: number | null
 }
@@ -67,17 +69,17 @@ export interface Contract {
 
 export interface Call {
   id: string
-  client_id: string
   infopreneur_id?: string
   team_member_id?: string | null
-  date: string
-  duration: number | null
+  client_id: string | null
+  prospect_name: string | null
+  call_date: string
+  duration_seconds: number | null
+  recording_url: string | null
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
   outcome: string | null
-  is_closed?: boolean | null
-  amount_closed?: number | null
-  recording_url: string | null
   notes: string | null
+  created_at: string
 }
 
 export interface TeamMember {
@@ -87,7 +89,7 @@ export interface TeamMember {
   email: string
   phone: string | null
   role: 'closer' | 'setter'
-  is_active: boolean
+  active: boolean
   created_at: string
 }
 
@@ -98,10 +100,18 @@ export interface Prospect {
   email: string | null
   phone: string | null
   source: string | null
-  estimated_amount: number | null
+  estimated_value: number | null
   pipeline_stage: 'nouveau_lead' | 'set_en_cours' | 'rdv_booke' | 'no_show' | 'proposition_envoyee' | 'follow_up' | 'gagne' | 'perdu'
-  assigned_to: string | null
   notes: string | null
   created_at: string
   updated_at: string | null
+}
+
+export interface Program {
+  id: string
+  infopreneur_id: string
+  name: string
+  price: number | null
+  description: string | null
+  created_at: string
 }

@@ -17,14 +17,14 @@ interface ObjectivesSectionProps {
 }
 
 const FIELDS: {
-  key: keyof Pick<Objective, 'ca_target' | 'closing_rate_target' | 'show_up_rate_target'>
+  key: keyof Pick<Objective, 'revenue_target' | 'closing_rate_target' | 'show_up_rate_target'>
   label: string
   icon: ElementType
   placeholder: string
   suffix: string
   max?: number
 }[] = [
-  { key: 'ca_target', label: 'CA mensuel cible', icon: Euro, placeholder: '10000', suffix: '€' },
+  { key: 'revenue_target', label: 'CA mensuel cible', icon: Euro, placeholder: '10000', suffix: '€' },
   { key: 'closing_rate_target', label: 'Taux de closing cible', icon: TrendingUp, placeholder: '30', suffix: '%', max: 100 },
   { key: 'show_up_rate_target', label: 'Show-up rate cible', icon: UserCheck, placeholder: '80', suffix: '%', max: 100 },
 ]
@@ -33,8 +33,9 @@ export function ObjectivesSection({ objective, userId }: ObjectivesSectionProps)
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
-    ca_target: String(objective?.ca_target ?? ''),
+    revenue_target: String(objective?.revenue_target ?? ''),
     closing_rate_target: String(objective?.closing_rate_target ?? ''),
     show_up_rate_target: String(objective?.show_up_rate_target ?? ''),
   })
@@ -42,23 +43,40 @@ export function ObjectivesSection({ objective, userId }: ObjectivesSectionProps)
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    setError(null)
     const supabase = createClient()
 
-    await supabase.from('objectives').upsert(
-      {
-        infopreneur_id: userId,
-        period: 'monthly',
-        ca_target: form.ca_target ? Number(form.ca_target) : null,
-        closing_rate_target: form.closing_rate_target ? Number(form.closing_rate_target) : null,
-        show_up_rate_target: form.show_up_rate_target ? Number(form.show_up_rate_target) : null,
-      },
-      { onConflict: 'infopreneur_id,period' }
-    )
+    const now = new Date()
+    const periodStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+
+    const payload = {
+      infopreneur_id: userId,
+      period: 'monthly',
+      period_start: periodStart,
+      revenue_target: form.revenue_target ? Number(form.revenue_target) : null,
+      closing_rate_target: form.closing_rate_target ? Number(form.closing_rate_target) : null,
+      show_up_rate_target: form.show_up_rate_target ? Number(form.show_up_rate_target) : null,
+    }
+
+    let dbError
+    if (objective?.id) {
+      // Update existing
+      const { error } = await supabase.from('objectives').update(payload).eq('id', objective.id)
+      dbError = error
+    } else {
+      // Insert new
+      const { error } = await supabase.from('objectives').insert(payload)
+      dbError = error
+    }
 
     setLoading(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    router.refresh()
+    if (dbError) {
+      setError(dbError.message)
+    } else {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      router.refresh()
+    }
   }
 
   return (
@@ -97,6 +115,10 @@ export function ObjectivesSection({ objective, userId }: ObjectivesSectionProps)
                 </div>
               </div>
             ))}
+
+            {error && (
+              <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>
+            )}
 
             <div className="flex items-center gap-3 pt-2">
               <Button type="submit" disabled={loading}>

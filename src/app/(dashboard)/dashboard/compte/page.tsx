@@ -7,9 +7,10 @@ export default async function ComptePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: objective }] = await Promise.all([
+  const [{ data: profile }, { data: objective }, { data: programs }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('objectives').select('*').eq('infopreneur_id', user.id).eq('period', 'monthly').single(),
+    supabase.from('objectives').select('*').eq('infopreneur_id', user.id).order('created_at', { ascending: false }).limit(1).single(),
+    supabase.from('programs').select('*').eq('infopreneur_id', user.id).order('created_at', { ascending: false }),
   ])
 
   return (
@@ -24,6 +25,7 @@ export default async function ComptePage() {
       <CompteLayout
         profile={profile ?? null}
         objective={objective ?? null}
+        programs={programs ?? []}
         userEmail={user.email ?? ''}
         userId={user.id}
       />

@@ -144,12 +144,12 @@ export function AccueilClient({ client, coachProfile, coachingSteps, nextCall }:
               {nextCall ? (
                 <div>
                   <p className="font-semibold text-lg">
-                    {new Date(nextCall.date).toLocaleDateString('fr-FR', {
+                    {new Date(nextCall.call_date).toLocaleDateString('fr-FR', {
                       weekday: 'long', day: 'numeric', month: 'long',
                     })}
                   </p>
-                  {nextCall.duration && (
-                    <p className="text-sm text-muted-foreground">{nextCall.duration} min</p>
+                  {nextCall.duration_seconds && (
+                    <p className="text-sm text-muted-foreground">{nextCall.duration_seconds} min</p>
                   )}
                 </div>
               ) : (

@@ -13,6 +13,7 @@ import type { Prospect } from '@/lib/types'
 
 interface AddProspectModalProps {
   defaultStage: Prospect['pipeline_stage']
+  assignedTo?: string | null
 }
 
 const SOURCES = [
@@ -35,7 +36,7 @@ const STAGES: { value: Prospect['pipeline_stage']; label: string }[] = [
   { value: 'perdu', label: 'Perdu' },
 ]
 
-export function AddProspectModal({ defaultStage }: AddProspectModalProps) {
+export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -44,12 +45,12 @@ export function AddProspectModal({ defaultStage }: AddProspectModalProps) {
     email: '',
     phone: '',
     source: '',
-    estimated_amount: '',
+    estimated_value: '',
     pipeline_stage: defaultStage,
   })
 
   function reset() {
-    setForm({ full_name: '', email: '', phone: '', source: '', estimated_amount: '', pipeline_stage: defaultStage })
+    setForm({ full_name: '', email: '', phone: '', source: '', estimated_value: '', pipeline_stage: defaultStage })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,7 +66,7 @@ export function AddProspectModal({ defaultStage }: AddProspectModalProps) {
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
       source: form.source || null,
-      estimated_amount: form.estimated_amount ? Number(form.estimated_amount) : null,
+      estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
       pipeline_stage: form.pipeline_stage,
     })
 
@@ -130,10 +131,7 @@ export function AddProspectModal({ defaultStage }: AddProspectModalProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="p_source">Source</Label>
-                <Select
-                  value={form.source}
-                  onValueChange={(v) => setForm((f) => ({ ...f, source: v }))}
-                >
+                <Select value={form.source} onValueChange={(v) => setForm((f) => ({ ...f, source: v }))}>
                   <SelectTrigger id="p_source" disabled={loading}>
                     <SelectValue placeholder="Choisir..." />
                   </SelectTrigger>
@@ -145,13 +143,13 @@ export function AddProspectModal({ defaultStage }: AddProspectModalProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="p_amount">Montant estimé (€)</Label>
+                <Label htmlFor="p_amount">Valeur estimée (€)</Label>
                 <Input
                   id="p_amount"
                   type="number"
                   min="0"
-                  value={form.estimated_amount}
-                  onChange={(e) => setForm((f) => ({ ...f, estimated_amount: e.target.value }))}
+                  value={form.estimated_value}
+                  onChange={(e) => setForm((f) => ({ ...f, estimated_value: e.target.value }))}
                   placeholder="2000"
                   disabled={loading}
                 />
@@ -174,9 +172,7 @@ export function AddProspectModal({ defaultStage }: AddProspectModalProps) {
               </Select>
             </div>
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-                Annuler
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>Annuler</Button>
               <Button type="submit" disabled={loading || !form.full_name.trim()}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Ajouter
