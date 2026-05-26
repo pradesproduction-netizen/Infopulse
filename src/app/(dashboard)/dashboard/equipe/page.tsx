@@ -10,10 +10,16 @@ export default async function EquipePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: teamMembers }, { data: calls }] = await Promise.all([
+  const [{ data: teamMembers }, { data: calls }, { data: clients }] = await Promise.all([
     supabase.from('team_members').select('*').eq('infopreneur_id', user.id),
     supabase.from('calls').select('*').eq('infopreneur_id', user.id),
+    supabase.from('clients').select('id').eq('infopreneur_id', user.id),
   ])
+
+  const clientIds = clients?.map((c) => c.id) ?? []
+  const { data: payments } = clientIds.length > 0
+    ? await supabase.from('payments').select('amount, status, payment_date').in('client_id', clientIds)
+    : { data: [] as { amount: number; status: string; payment_date: string }[] }
 
   const activeCount = teamMembers?.filter((m) => m.active).length ?? 0
 
@@ -29,7 +35,7 @@ export default async function EquipePage() {
         <AddMemberModal />
       </div>
 
-      <TeamStats calls={calls ?? []} teamMembers={teamMembers ?? []} />
+      <TeamStats calls={calls ?? []} teamMembers={teamMembers ?? []} payments={payments ?? []} />
       <TeamLeaderboard teamMembers={teamMembers ?? []} calls={calls ?? []} />
       <TeamMembersGrid teamMembers={teamMembers ?? []} calls={calls ?? []} />
     </div>

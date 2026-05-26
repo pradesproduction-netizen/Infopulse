@@ -101,7 +101,9 @@ export interface Prospect {
   phone: string | null
   source: string | null
   estimated_value: number | null
-  pipeline_stage: 'nouveau_lead' | 'set_en_cours' | 'rdv_booke' | 'no_show' | 'proposition_envoyee' | 'follow_up' | 'gagne' | 'perdu'
+  pipeline_stage: 'Nouveau lead' | 'Set en cours' | 'RDV booké' | 'No show' | 'Proposition envoyée' | 'Follow-up' | 'Gagné' | 'Perdu'
+  instagram_url: string | null
+  linkedin_url: string | null
   notes: string | null
   created_at: string
   updated_at: string | null

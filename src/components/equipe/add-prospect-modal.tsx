@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import type { Prospect } from '@/lib/types'
 
 interface AddProspectModalProps {
@@ -20,26 +19,26 @@ const SOURCES = [
   { value: 'instagram', label: 'Instagram' },
   { value: 'facebook', label: 'Facebook' },
   { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'youtube', label: 'YouTube' },
-  { value: 'referral', label: 'Référence' },
+  { value: 'tiktok', label: 'TikTok' },
   { value: 'other', label: 'Autre' },
 ]
 
 const STAGES: { value: Prospect['pipeline_stage']; label: string }[] = [
-  { value: 'nouveau_lead', label: 'Nouveau lead' },
-  { value: 'set_en_cours', label: 'Set en cours' },
-  { value: 'rdv_booke', label: 'RDV booké' },
-  { value: 'no_show', label: 'No show' },
-  { value: 'proposition_envoyee', label: 'Proposition envoyée' },
-  { value: 'follow_up', label: 'Follow-up' },
-  { value: 'gagne', label: 'Gagné' },
-  { value: 'perdu', label: 'Perdu' },
+  { value: 'Nouveau lead', label: 'Nouveau lead' },
+  { value: 'Set en cours', label: 'Set en cours' },
+  { value: 'RDV booké', label: 'RDV booké' },
+  { value: 'No show', label: 'No show' },
+  { value: 'Proposition envoyée', label: 'Proposition envoyée' },
+  { value: 'Follow-up', label: 'Follow-up' },
+  { value: 'Gagné', label: 'Gagné' },
+  { value: 'Perdu', label: 'Perdu' },
 ]
 
 export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -47,33 +46,46 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
     source: '',
     estimated_value: '',
     pipeline_stage: defaultStage,
+    instagram_url: '',
+    linkedin_url: '',
   })
 
   function reset() {
-    setForm({ full_name: '', email: '', phone: '', source: '', estimated_value: '', pipeline_stage: defaultStage })
+    setForm({ full_name: '', email: '', phone: '', source: '', estimated_value: '', pipeline_stage: defaultStage, instagram_url: '', linkedin_url: '' })
+    setError(null)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
+    setError(null)
 
-    await supabase.from('prospects').insert({
-      infopreneur_id: user.id,
-      full_name: form.full_name.trim(),
-      email: form.email.trim() || null,
-      phone: form.phone.trim() || null,
-      source: form.source || null,
-      estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
-      pipeline_stage: form.pipeline_stage,
+    const res = await fetch('/api/add-prospect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: form.full_name.trim(),
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        source: form.source || null,
+        estimated_value: form.estimated_value || null,
+        pipeline_stage: form.pipeline_stage,
+        instagram_url: form.instagram_url.trim() || null,
+        linkedin_url: form.linkedin_url.trim() || null,
+        team_member_id: assignedTo ?? null,
+      }),
     })
 
     setLoading(false)
-    setOpen(false)
-    reset()
-    router.refresh()
+
+    if (res.ok) {
+      setOpen(false)
+      reset()
+      router.refresh()
+    } else {
+      const data = await res.json()
+      setError(data.error ?? 'Erreur lors de l\'ajout')
+    }
   }
 
   return (
@@ -155,6 +167,28 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="p_instagram">Instagram</Label>
+                <Input
+                  id="p_instagram"
+                  value={form.instagram_url}
+                  onChange={(e) => setForm((f) => ({ ...f, instagram_url: e.target.value }))}
+                  placeholder="instagram.com/user"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="p_linkedin">LinkedIn</Label>
+                <Input
+                  id="p_linkedin"
+                  value={form.linkedin_url}
+                  onChange={(e) => setForm((f) => ({ ...f, linkedin_url: e.target.value }))}
+                  placeholder="linkedin.com/in/user"
+                  disabled={loading}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="p_stage">Étape *</Label>
               <Select
@@ -171,6 +205,11 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
                 </SelectContent>
               </Select>
             </div>
+            {error && (
+              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                ⚠️ {error}
+              </p>
+            )}
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>Annuler</Button>
               <Button type="submit" disabled={loading || !form.full_name.trim()}>

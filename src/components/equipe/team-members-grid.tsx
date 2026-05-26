@@ -138,17 +138,17 @@ function MemberCard({ member, calls }: MemberCardProps) {
     <>
       <Card className={cn('border-white/10 bg-card/50 transition-opacity', !member.active && 'opacity-60')}>
         <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className={cn('h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0', member.role === 'closer' ? 'bg-violet-500' : 'bg-blue-500')}>
                 {initials}
               </div>
-              <div>
-                <p className="font-medium text-sm leading-tight">{member.full_name}</p>
-                <p className="text-xs text-muted-foreground">{member.email}</p>
+              <div className="min-w-0">
+                <p className="font-medium text-sm leading-tight truncate">{member.full_name}</p>
+                <p className="text-xs text-muted-foreground truncate">{member.email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleToggle} disabled={toggleLoading} title={member.active ? 'Désactiver' : 'Activer'}>
                 <Power className={cn('h-3.5 w-3.5', member.active ? 'text-green-400' : 'text-muted-foreground')} />
               </Button>
@@ -219,7 +219,7 @@ export function TeamMembersGrid({ teamMembers, calls }: TeamMembersGridProps) {
       {teamMembers.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">Aucun membre pour l&apos;instant.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 [&>*]:min-w-0">
           {teamMembers.map((member) => (
             <MemberCard key={member.id} member={member} calls={calls} />
           ))}

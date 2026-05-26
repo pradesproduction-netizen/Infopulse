@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       { data: teamMembers },
     ] = await Promise.all([
       supabase.from('clients').select('id, full_name, status').eq('infopreneur_id', user.id),
-      supabase.from('prospects').select('full_name, pipeline_stage').eq('infopreneur_id', user.id).eq('pipeline_stage', 'follow_up'),
+      supabase.from('prospects').select('full_name, pipeline_stage').eq('infopreneur_id', user.id).eq('pipeline_stage', 'Follow-up'),
       supabase.from('team_members').select('id').eq('infopreneur_id', user.id).eq('is_active', true),
     ])
 

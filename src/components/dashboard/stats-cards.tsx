@@ -42,28 +42,35 @@ function StatCard({ title, value, change, changeType, icon: Icon, iconColor }: S
   )
 }
 
-export function StatsCards() {
+interface StatsCardsProps {
+  caMonth: number
+  todayCalls: number
+  upcomingPaymentsTotal: number
+  overdueCount: number
+}
+
+export function StatsCards({ caMonth, todayCalls, upcomingPaymentsTotal, overdueCount }: StatsCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
         title="CA du mois"
-        value="12 450 €"
-        change="+18% vs mois dernier"
-        changeType="positive"
+        value={caMonth > 0 ? `${caMonth.toLocaleString('fr-FR')} €` : '— €'}
+        change={caMonth > 0 ? 'Paiements encaissés' : 'Aucun paiement ce mois'}
+        changeType={caMonth > 0 ? 'positive' : 'neutral'}
         icon={Euro}
         iconColor="bg-violet-500"
       />
       <StatCard
         title="Appels prévus"
-        value="7"
-        change="3 ce matin"
+        value={String(todayCalls)}
+        change={todayCalls > 0 ? "Planifiés aujourd'hui" : "Aucun appel aujourd'hui"}
         changeType="neutral"
         icon={Phone}
         iconColor="bg-blue-500"
       />
       <StatCard
         title="Paiements à venir"
-        value="3 280 €"
+        value={upcomingPaymentsTotal > 0 ? `${upcomingPaymentsTotal.toLocaleString('fr-FR')} €` : '— €'}
         change="Dans les 7 prochains jours"
         changeType="neutral"
         icon={TrendingUp}
@@ -71,11 +78,11 @@ export function StatsCards() {
       />
       <StatCard
         title="Alertes critiques"
-        value="2"
-        change="Clients en retard de paiement"
-        changeType="negative"
+        value={String(overdueCount)}
+        change={overdueCount > 0 ? 'Clients en retard de paiement' : 'Aucun retard'}
+        changeType={overdueCount > 0 ? 'negative' : 'neutral'}
         icon={AlertTriangle}
-        iconColor="bg-red-500"
+        iconColor={overdueCount > 0 ? 'bg-red-500' : 'bg-gray-500'}
       />
     </div>
   )

@@ -11,7 +11,6 @@ interface PageProps {
   params: Promise<{ memberId: string }>
 }
 
-// Fake 4-week performance data (bars)
 function PerformanceChart({ calls }: { calls: { call_date: string; status: string }[] }) {
   const now = new Date()
   const weeks = Array.from({ length: 4 }, (_, i) => {
@@ -45,13 +44,11 @@ function PerformanceChart({ calls }: { calls: { call_date: string; status: strin
           {weeks.map((week) => (
             <div key={week.label} className="flex-1 flex flex-col items-center gap-1">
               <div className="w-full flex flex-col items-center justify-end gap-0.5" style={{ height: '100px' }}>
-                {/* Total bar */}
                 <div className="relative w-full flex flex-col justify-end" style={{ height: '100px' }}>
                   <div
                     className="w-full rounded-t-md bg-violet-500/30 relative"
                     style={{ height: `${(week.count / max) * 100}%`, minHeight: week.count > 0 ? '4px' : '0' }}
                   >
-                    {/* Completed overlay */}
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-md bg-violet-500"
                       style={{ height: week.count > 0 ? `${(week.completed / week.count) * 100}%` : '0' }}
@@ -90,7 +87,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       <MemberProfileHeader member={member} />
-      <MemberKpiCards calls={calls ?? []} />
+      <MemberKpiCards calls={calls ?? []} prospects={prospects ?? []} />
       <PerformanceChart calls={(calls ?? []).map((c) => ({ call_date: c.call_date, status: c.status }))} />
       <MemberPipeline prospects={prospects ?? []} memberId={memberId} />
       <MemberCallsList calls={calls ?? []} />

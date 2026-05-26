@@ -5,9 +5,16 @@ import { Phone, TrendingUp, UserCheck, Euro } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Call, TeamMember } from '@/lib/types'
 
+interface Payment {
+  amount: number
+  status: string
+  payment_date: string
+}
+
 interface TeamStatsProps {
   calls: Call[]
   teamMembers: TeamMember[]
+  payments: Payment[]
 }
 
 function isThisMonth(dateStr: string) {
@@ -16,12 +23,16 @@ function isThisMonth(dateStr: string) {
   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
 }
 
-export function TeamStats({ calls, teamMembers }: TeamStatsProps) {
+export function TeamStats({ calls, teamMembers, payments }: TeamStatsProps) {
   const thisMonthCalls = calls.filter((c) => isThisMonth(c.call_date))
   const completed = thisMonthCalls.filter((c) => c.status === 'completed').length
   const noShow = thisMonthCalls.filter((c) => c.status === 'no_show').length
   const showUpRate =
     completed + noShow > 0 ? Math.round((completed / (completed + noShow)) * 100) : 0
+
+  const caMonth = payments
+    .filter((p) => p.status === 'paid' && isThisMonth(p.payment_date))
+    .reduce((sum, p) => sum + p.amount, 0)
 
   const stats = [
     {
@@ -47,8 +58,8 @@ export function TeamStats({ calls, teamMembers }: TeamStatsProps) {
     },
     {
       title: 'CA équipe',
-      value: '—',
-      sub: 'Données non disponibles',
+      value: caMonth > 0 ? `${caMonth.toLocaleString('fr-FR')} €` : '— €',
+      sub: caMonth > 0 ? 'Paiements encaissés ce mois' : 'Aucun paiement ce mois',
       icon: Euro,
       iconBg: 'bg-orange-500',
     },
