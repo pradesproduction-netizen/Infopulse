@@ -1,25 +1,21 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { TeamStats } from '@/components/equipe/team-stats'
+import { TeamProspectsKpi } from '@/components/equipe/team-prospects-kpi'
 import { TeamLeaderboard } from '@/components/equipe/team-leaderboard'
 import { TeamMembersGrid } from '@/components/equipe/team-members-grid'
 import { AddMemberModal } from '@/components/equipe/add-member-modal'
+import type { Prospect } from '@/lib/types'
 
 export default async function EquipePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: teamMembers }, { data: calls }, { data: clients }] = await Promise.all([
+  const [{ data: teamMembers }, { data: calls }, { data: prospects }] = await Promise.all([
     supabase.from('team_members').select('*').eq('infopreneur_id', user.id),
     supabase.from('calls').select('*').eq('infopreneur_id', user.id),
-    supabase.from('clients').select('id').eq('infopreneur_id', user.id),
+    supabase.from('prospects').select('*').eq('infopreneur_id', user.id),
   ])
-
-  const clientIds = clients?.map((c) => c.id) ?? []
-  const { data: payments } = clientIds.length > 0
-    ? await supabase.from('payments').select('amount, status, payment_date').in('client_id', clientIds)
-    : { data: [] as { amount: number; status: string; payment_date: string }[] }
 
   const activeCount = teamMembers?.filter((m) => m.active).length ?? 0
 
@@ -35,7 +31,11 @@ export default async function EquipePage() {
         <AddMemberModal />
       </div>
 
-      <TeamStats calls={calls ?? []} teamMembers={teamMembers ?? []} payments={payments ?? []} />
+      <TeamProspectsKpi
+        initialProspects={(prospects ?? []) as Prospect[]}
+        teamMembers={teamMembers ?? []}
+        infopreneurId={user.id}
+      />
       <TeamLeaderboard teamMembers={teamMembers ?? []} calls={calls ?? []} />
       <TeamMembersGrid teamMembers={teamMembers ?? []} calls={calls ?? []} />
     </div>

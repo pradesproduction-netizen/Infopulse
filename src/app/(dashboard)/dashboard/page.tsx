@@ -1,8 +1,12 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { StatsCards } from '@/components/dashboard/stats-cards'
 import { DailyTasks } from '@/components/dashboard/daily-tasks'
-import { WeeklyRecap } from '@/components/dashboard/weekly-recap'
+import { DashboardProspectsWidget } from '@/components/dashboard/dashboard-prospects-widget'
+import type { Prospect } from '@/lib/types'
+
+const HONORED_STAGES: Prospect['pipeline_stage'][] = [
+  'Proposition envoyée', 'Follow-up', 'Gagné', 'Perdu',
+]
 
 function getWeekBounds() {
   const now = new Date()
@@ -24,8 +28,9 @@ export default async function DashboardPage() {
 
   const now = new Date()
   const today = now.toISOString().split('T')[0]
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
   const in7Days = new Date(now.getTime() + 7 * 86400 * 1000).toISOString().split('T')[0]
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
   const { monday, sunday } = getWeekBounds()
   const mondayStr = monday.toISOString().split('T')[0]
   const sundayStr = sunday.toISOString().split('T')[0]
@@ -33,7 +38,6 @@ export default async function DashboardPage() {
   const [
     { data: tasks },
     { data: clients },
-    { data: calls },
     { data: prospects },
     { data: objective },
   ] = await Promise.all([
@@ -43,8 +47,7 @@ export default async function DashboardPage() {
       .lte('generated_at', `${today}T23:59:59.999Z`)
       .order('generated_at'),
     supabase.from('clients').select('id').eq('infopreneur_id', user.id),
-    supabase.from('calls').select('status, call_date').eq('infopreneur_id', user.id),
-    supabase.from('prospects').select('pipeline_stage').eq('infopreneur_id', user.id),
+    supabase.from('prospects').select('*').eq('infopreneur_id', user.id),
     supabase.from('objectives').select('*')
       .eq('infopreneur_id', user.id)
       .order('created_at', { ascending: false })
@@ -58,17 +61,31 @@ export default async function DashboardPage() {
     : { data: [] as { amount: number; status: string; payment_date: string }[] }
 
   const allPayments = payments ?? []
-  const allCalls = calls ?? []
-  const allProspects = prospects ?? []
+  const allProspects = (prospects ?? []) as Prospect[]
 
-  // Stats cards
-  const caMonth = allPayments
-    .filter((p) => p.status === 'paid' && p.payment_date >= startOfMonth)
-    .reduce((s, p) => s + p.amount, 0)
+  // Initial KPI values for DashboardProspectsWidget (server snapshot)
+  const initialCaMonth = allProspects
+    .filter((p) =>
+      p.pipeline_stage === 'Gagné' &&
+      p.updated_at !== null &&
+      p.updated_at >= startOfMonth &&
+      p.updated_at < startOfNextMonth
+    )
+    .reduce((s, p) => s + (p.estimated_value ?? 0), 0)
 
-  const todayCalls = allCalls.filter(
-    (c) => c.status === 'scheduled' && c.call_date.slice(0, 10) === today
-  ).length
+  const initialTotal = allProspects.length
+
+  const initialRdvBooke = allProspects.filter((p) => p.pipeline_stage === 'RDV booké').length
+
+  // Static values for WeeklyRecap (not realtime — computed once at render)
+  const prospectTotal = allProspects.length
+  const prospectWon = allProspects.filter((p) => p.pipeline_stage === 'Gagné').length
+  const prospectNoShows = allProspects.filter((p) => p.pipeline_stage === 'No show').length
+  const prospectHonored = allProspects.filter((p) => HONORED_STAGES.includes(p.pipeline_stage)).length
+  const closingRate = prospectTotal > 0 ? Math.round((prospectWon / prospectTotal) * 100) : 0
+  const showUpRate = prospectHonored + prospectNoShows > 0
+    ? Math.round((prospectHonored / (prospectHonored + prospectNoShows)) * 100)
+    : 0
 
   const upcomingPaymentsTotal = allPayments
     .filter((p) => p.status === 'pending' && p.payment_date >= today && p.payment_date <= in7Days)
@@ -76,7 +93,6 @@ export default async function DashboardPage() {
 
   const overdueCount = allPayments.filter((p) => p.status === 'overdue').length
 
-  // Weekly recap
   const caWeek = allPayments
     .filter((p) => p.status === 'paid' && p.payment_date >= mondayStr && p.payment_date <= sundayStr)
     .reduce((s, p) => s + p.amount, 0)
@@ -85,42 +101,27 @@ export default async function DashboardPage() {
     ? Math.round(objective.revenue_target / 4)
     : 0
 
-  const weekCalls = allCalls.filter(
-    (c) => c.call_date.slice(0, 10) >= mondayStr && c.call_date.slice(0, 10) <= sundayStr
-  )
-  const weekCompleted = weekCalls.filter((c) => c.status === 'completed').length
-  const weekNoShow = weekCalls.filter((c) => c.status === 'no_show').length
-  const showUpRate = weekCompleted + weekNoShow > 0
-    ? Math.round((weekCompleted / (weekCompleted + weekNoShow)) * 100)
-    : 0
-
-  const wonProspects = allProspects.filter((p) => p.pipeline_stage === 'Gagné').length
-  const closingRate = allProspects.length > 0
-    ? Math.round((wonProspects / allProspects.length) * 100)
-    : 0
-
   const weekLabel = `Semaine du ${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} au ${sunday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
 
   return (
     <div className="p-6 space-y-6">
-      <StatsCards
-        caMonth={caMonth}
-        todayCalls={todayCalls}
+      <DashboardProspectsWidget
+        infopreneurId={user.id}
+        initialCaMonth={initialCaMonth}
+        initialTotal={initialTotal}
+        initialRdvBooke={initialRdvBooke}
         upcomingPaymentsTotal={upcomingPaymentsTotal}
         overdueCount={overdueCount}
-      />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        caWeek={caWeek}
+        caTarget={weeklyTarget}
+        closingRate={closingRate}
+        closingRateTarget={objective?.closing_rate_target ?? 0}
+        showUpRate={showUpRate}
+        showUpRateTarget={objective?.show_up_rate_target ?? 0}
+        weekLabel={weekLabel}
+      >
         <DailyTasks tasks={tasks ?? []} userId={user.id} />
-        <WeeklyRecap
-          caWeek={caWeek}
-          caTarget={weeklyTarget}
-          closingRate={closingRate}
-          closingRateTarget={objective?.closing_rate_target ?? 0}
-          showUpRate={showUpRate}
-          showUpRateTarget={objective?.show_up_rate_target ?? 0}
-          weekLabel={weekLabel}
-        />
-      </div>
+      </DashboardProspectsWidget>
     </div>
   )
 }

@@ -79,7 +79,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
   const [{ data: member }, { data: calls }, { data: prospects }] = await Promise.all([
     supabase.from('team_members').select('*').eq('id', memberId).eq('infopreneur_id', user.id).single(),
     supabase.from('calls').select('*').eq('team_member_id', memberId).eq('infopreneur_id', user.id).order('call_date', { ascending: false }),
-    supabase.from('prospects').select('*').eq('infopreneur_id', user.id),
+    supabase.from('prospects').select('*').eq('infopreneur_id', user.id).eq('team_member_id', memberId),
   ])
 
   if (!member) notFound()
@@ -87,7 +87,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       <MemberProfileHeader member={member} />
-      <MemberKpiCards calls={calls ?? []} prospects={prospects ?? []} />
+      <MemberKpiCards initialProspects={prospects ?? []} teamMemberId={memberId} />
       <PerformanceChart calls={(calls ?? []).map((c) => ({ call_date: c.call_date, status: c.status }))} />
       <MemberPipeline prospects={prospects ?? []} memberId={memberId} />
       <MemberCallsList calls={calls ?? []} />

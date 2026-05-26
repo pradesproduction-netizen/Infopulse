@@ -72,43 +72,45 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { id } = await params
+  const admin = createAdminClient()
 
-  // Infopreneur path
-  const { data } = await supabase
+  // Look up the prospect's owner to authorize the request
+  const { data: prospect } = await admin
     .from('prospects')
-    .delete()
+    .select('infopreneur_id')
     .eq('id', id)
-    .eq('infopreneur_id', user.id)
-    .select('id')
     .single()
 
-  if (data) {
-    revalidatePath('/dashboard/equipe', 'layout')
-    revalidatePath('/dashboard', 'page')
-    return Response.json({ success: true })
+  if (!prospect) return Response.json({ error: 'Prospect introuvable' }, { status: 404 })
+
+  // Authorize: user is the infopreneur owner
+  const isOwner = prospect.infopreneur_id === user.id
+
+  // Or user is a team member of that infopreneur
+  if (!isOwner) {
+    const { data: member } = await admin
+      .from('team_members')
+      .select('id')
+      .eq('email', user.email ?? '')
+      .eq('infopreneur_id', prospect.infopreneur_id)
+      .single()
+
+    if (!member) return Response.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
-  // Team member path
-  const admin = createAdminClient()
-  const { data: member } = await admin
-    .from('team_members')
-    .select('infopreneur_id')
-    .eq('email', user.email ?? '')
-    .single()
-
-  if (!member) return Response.json({ error: 'Non autorisé' }, { status: 403 })
-
+  // Delete via admin client (bypasses RLS, authorization already verified above)
   const { error } = await admin
     .from('prospects')
     .delete()
     .eq('id', id)
-    .eq('infopreneur_id', member.infopreneur_id)
 
   if (error) {
     console.error('[delete-prospect] DELETE error:', error.message)
     return Response.json({ error: error.message }, { status: 500 })
   }
 
+  revalidatePath('/dashboard/equipe', 'layout')
+  revalidatePath('/dashboard', 'page')
   revalidatePath('/espace-equipe/pipeline', 'page')
   return Response.json({ success: true })
 }

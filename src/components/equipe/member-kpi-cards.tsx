@@ -1,17 +1,20 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Phone, UserCheck, CheckCircle, XCircle, TrendingUp, Target } from 'lucide-react'
+import { TrendingUp, Target, Calendar, UserCheck, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Call, Prospect } from '@/lib/types'
+import type { Prospect } from '@/lib/types'
+
+// Stages that indicate the prospect showed up (call was honored)
+const HONORED_STAGES: Prospect['pipeline_stage'][] = [
+  'Proposition envoyée', 'Follow-up', 'Gagné', 'Perdu',
+]
 
 interface MemberKpiCardsProps {
-  calls: Call[]
-  prospects: Prospect[]
-}
-
-function isThisMonth(dateStr: string) {
-  const d = new Date(dateStr)
-  const now = new Date()
-  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  initialProspects: Prospect[]
+  teamMemberId: string
 }
 
 function KpiCard({ title, value, sub, icon: Icon, iconBg }: {
@@ -34,55 +37,102 @@ function KpiCard({ title, value, sub, icon: Icon, iconBg }: {
   )
 }
 
-export function MemberKpiCards({ calls, prospects }: MemberKpiCardsProps) {
-  // Call KPIs (this month)
-  const thisMonth = calls.filter((c) => isThisMonth(c.call_date))
-  const completed = thisMonth.filter((c) => c.status === 'completed').length
-  const noShowCalls = thisMonth.filter((c) => c.status === 'no_show').length
-  const showUpRate = completed + noShowCalls > 0
-    ? Math.round((completed / (completed + noShowCalls)) * 100)
-    : 0
+function computeKpis(prospects: Prospect[]) {
+  const total = prospects.length
+  const won = prospects.filter((p) => p.pipeline_stage === 'Gagné').length
+  const scheduled = prospects.filter((p) => p.pipeline_stage === 'RDV booké').length
+  const noShows = prospects.filter((p) => p.pipeline_stage === 'No show').length
+  const honored = prospects.filter((p) => HONORED_STAGES.includes(p.pipeline_stage)).length
+  const closingRate = total > 0 ? Math.round((won / total) * 100) : 0
+  const showUpRate = honored + noShows > 0 ? Math.round((honored / (honored + noShows)) * 100) : 0
+  return { total, won, scheduled, noShows, honored, closingRate, showUpRate }
+}
 
-  // Prospect KPIs (all-time)
-  const totalProspects = prospects.length
-  const wonProspects = prospects.filter((p) => p.pipeline_stage === 'Gagné').length
-  const noShowProspects = prospects.filter((p) => p.pipeline_stage === 'No show').length
-  const closingRate = totalProspects > 0
-    ? Math.round((wonProspects / totalProspects) * 100)
-    : 0
+export function MemberKpiCards({ initialProspects, teamMemberId }: MemberKpiCardsProps) {
+  const [prospects, setProspects] = useState<Prospect[]>(initialProspects)
+
+  // Sync when server re-renders with fresh props (after router.refresh)
+  useEffect(() => {
+    setProspects(initialProspects)
+  }, [initialProspects])
+
+  // Supabase Realtime — live updates on prospects table
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`kpi-prospects-${teamMemberId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'prospects',
+          filter: `team_member_id=eq.${teamMemberId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setProspects((prev) => [...prev, payload.new as Prospect])
+          } else if (payload.eventType === 'UPDATE') {
+            setProspects((prev) =>
+              prev.map((p) => p.id === (payload.new as Prospect).id ? (payload.new as Prospect) : p)
+            )
+          } else if (payload.eventType === 'DELETE') {
+            setProspects((prev) =>
+              prev.filter((p) => p.id !== (payload.old as { id: string }).id)
+            )
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [teamMemberId])
+
+  const { total, won, scheduled, noShows, closingRate, showUpRate } = computeKpis(prospects)
+
+  const kpis = [
+    {
+      title: 'Prospects total',
+      value: String(total),
+      sub: `${won} gagné${won !== 1 ? 's' : ''}`,
+      icon: TrendingUp,
+      iconBg: 'bg-violet-500',
+    },
+    {
+      title: 'Taux de closing',
+      value: `${closingRate}%`,
+      sub: 'Prospects → Gagnés',
+      icon: Target,
+      iconBg: 'bg-green-600',
+    },
+    {
+      title: 'Appels planifiés',
+      value: String(scheduled),
+      sub: 'Étape RDV booké',
+      icon: Calendar,
+      iconBg: 'bg-blue-500',
+    },
+    {
+      title: 'Show-up rate',
+      value: `${showUpRate}%`,
+      sub: `${noShows} no-show${noShows !== 1 ? 's' : ''}`,
+      icon: UserCheck,
+      iconBg: 'bg-sky-500',
+    },
+    {
+      title: 'No-shows',
+      value: String(noShows),
+      sub: 'Étape No show',
+      icon: XCircle,
+      iconBg: 'bg-red-500',
+    },
+  ]
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Appels ce mois" value={String(thisMonth.length)} sub="Total planifiés + complétés" icon={Phone} iconBg="bg-violet-500" />
-        <KpiCard title="Appels complétés" value={String(completed)} sub="Appels honorés" icon={CheckCircle} iconBg="bg-green-500" />
-        <KpiCard title="Show-up rate" value={`${showUpRate}%`} sub={`${noShowCalls} no-show${noShowCalls !== 1 ? 's' : ''}`} icon={UserCheck} iconBg="bg-blue-500" />
-        <KpiCard title="No-shows" value={String(noShowCalls)} sub="Appels non honorés" icon={XCircle} iconBg="bg-red-500" />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KpiCard
-          title="Prospects total"
-          value={String(totalProspects)}
-          sub={`${wonProspects} gagné${wonProspects !== 1 ? 's' : ''}`}
-          icon={TrendingUp}
-          iconBg="bg-violet-500"
-        />
-        <KpiCard
-          title="Taux de closing"
-          value={`${closingRate}%`}
-          sub="Prospects → Gagnés"
-          icon={Target}
-          iconBg="bg-green-500"
-        />
-        <KpiCard
-          title="No-shows pipeline"
-          value={String(noShowProspects)}
-          sub="Prospects no-show"
-          icon={XCircle}
-          iconBg="bg-orange-500"
-        />
-      </div>
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {kpis.map(({ title, value, sub, icon, iconBg }) => (
+        <KpiCard key={title} title={title} value={value} sub={sub} icon={icon} iconBg={iconBg} />
+      ))}
     </div>
   )
 }
