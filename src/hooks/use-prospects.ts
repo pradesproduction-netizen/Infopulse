@@ -22,6 +22,8 @@ export function useProspects(infopreneurId: string, initial: Prospect[]): Prospe
       if (data) setProspects(data as Prospect[])
     }
 
+    void refetch()
+
     const channel = supabase
       .channel(`prospects-${infopreneurId}`)
       .on(
