@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ClientsList } from '@/components/dashboard/clients-list'
 import { NewClientButton } from '@/components/dashboard/new-client-button'
+import { PaymentLinks } from '@/components/clients/payment-links'
 
 export default async function ClientsPage() {
   const supabase = await createClient()
@@ -26,6 +27,7 @@ export default async function ClientsPage() {
         </div>
         <NewClientButton />
       </div>
+      <PaymentLinks infopreneurId={user.id} />
       <ClientsList clients={clients ?? []} />
     </div>
   )

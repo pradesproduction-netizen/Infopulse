@@ -118,3 +118,11 @@ export interface Program {
   description: string | null
   created_at: string
 }
+
+export interface PaymentLink {
+  id: string
+  infopreneur_id: string
+  name: string
+  url: string
+  created_at: string
+}
