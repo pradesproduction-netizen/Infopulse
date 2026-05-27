@@ -7,7 +7,6 @@ import { useUpcomingPayments } from '@/hooks/use-upcoming-payments'
 import { KpiSlideOver, type PanelType } from '@/components/dashboard/kpi-slide-over'
 import { WeeklyRecap } from '@/components/dashboard/weekly-recap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import Link from 'next/link'
 import { Euro, Phone, TrendingUp, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -110,25 +109,14 @@ export function DashboardProspectsWidget({
             iconBg="bg-green-500"
             onClick={() => setOpenPanel('paiements')}
           />
-          {alertCount > 0 ? (
-            <Link href="/dashboard/clients?filtre=retard" className="block">
-              <StatCard
-                title="Relances paiement"
-                value={String(alertCount)}
-                sub="Voir les clients concernés →"
-                icon={Bell}
-                iconBg="bg-red-500"
-              />
-            </Link>
-          ) : (
-            <StatCard
-              title="Relances paiement"
-              value="0"
-              sub="Aucun retard de paiement"
-              icon={Bell}
-              iconBg="bg-gray-500"
-            />
-          )}
+          <StatCard
+            title="Relances paiement"
+            value={String(alertCount)}
+            sub={alertCount > 0 ? `${alertCount} échéance${alertCount !== 1 ? 's' : ''} à relancer` : 'Aucun retard de paiement'}
+            icon={Bell}
+            iconBg={alertCount > 0 ? 'bg-red-500' : 'bg-gray-500'}
+            onClick={() => setOpenPanel('relances')}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

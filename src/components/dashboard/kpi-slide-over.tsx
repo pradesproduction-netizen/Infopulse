@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { X, ArrowRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type PanelType = 'ca_mois' | 'rdv_booke' | 'paiements'
+export type PanelType = 'ca_mois' | 'rdv_booke' | 'paiements' | 'relances'
 
 interface ProspectItem {
   id: string
@@ -27,6 +27,7 @@ const TITLES: Record<PanelType, string> = {
   ca_mois:   'CA du mois — Prospects gagnés',
   rdv_booke: 'Appels prévus — RDV bookés',
   paiements: 'Paiements à venir — En attente ce mois',
+  relances:  'Relances paiement — À relancer',
 }
 
 interface KpiSlideOverProps {
@@ -79,6 +80,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
           setLoading(false)
         })
     } else {
+      // paiements (pending ce mois) ou relances (a_relancer tous)
       supabase
         .from('clients')
         .select('id')
@@ -90,14 +92,22 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
             setLoading(false)
             return
           }
-          const { data } = await supabase
+          let query = supabase
             .from('payments')
             .select('amount, payment_date, status, client:clients(id, full_name)')
             .in('client_id', clientIds)
-            .eq('status', 'pending')
-            .gte('payment_date', startOfMonthDate)
-            .lte('payment_date', endOfMonthDate)
             .order('payment_date')
+
+          if (type === 'paiements') {
+            query = query
+              .eq('status', 'pending')
+              .gte('payment_date', startOfMonthDate)
+              .lte('payment_date', endOfMonthDate)
+          } else {
+            query = query.eq('status', 'a_relancer')
+          }
+
+          const { data } = await query
           setPayments((data ?? []) as unknown as PaymentItem[])
           setLoading(false)
         })
@@ -145,10 +155,12 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : type === 'paiements' ? (
+          ) : type === 'paiements' || type === 'relances' ? (
             payments.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-16">
-                Aucun paiement à venir ce mois-ci.
+                {type === 'relances'
+                  ? 'Aucune relance en cours.'
+                  : 'Aucun paiement à venir ce mois-ci.'}
               </p>
             ) : (
               <ul className="space-y-2">
