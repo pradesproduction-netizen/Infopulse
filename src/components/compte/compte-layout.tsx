@@ -20,6 +20,7 @@ interface CompteLayoutProps {
   programs: Program[]
   userEmail: string
   userId: string
+  subscriptionPlan?: string | null
 }
 
 const TABS: { id: Tab; label: string; icon: ElementType }[] = [
@@ -31,7 +32,7 @@ const TABS: { id: Tab; label: string; icon: ElementType }[] = [
   { id: 'securite', label: 'Sécurité', icon: Shield },
 ]
 
-export function CompteLayout({ profile, objective, programs, userEmail, userId }: CompteLayoutProps) {
+export function CompteLayout({ profile, objective, programs, userEmail, userId, subscriptionPlan }: CompteLayoutProps) {
   const [activeTab, setActiveTab] = useState<Tab>('profil')
 
   return (
@@ -58,7 +59,7 @@ export function CompteLayout({ profile, objective, programs, userEmail, userId }
 
       <div className="flex-1 min-w-0">
         {activeTab === 'profil' && <ProfileSection profile={profile} userEmail={userEmail} />}
-        {activeTab === 'abonnement' && <SubscriptionSection />}
+        {activeTab === 'abonnement' && <SubscriptionSection currentPlan={subscriptionPlan} />}
         {activeTab === 'objectifs' && <ObjectivesSection objective={objective} userId={userId} />}
         {activeTab === 'programmes' && <ProgramsSection programs={programs} subscriptionPlan={profile?.subscription_plan ?? null} />}
         {activeTab === 'integrations' && <IntegrationsSection />}

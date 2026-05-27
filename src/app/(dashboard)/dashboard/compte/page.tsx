@@ -28,6 +28,7 @@ export default async function ComptePage() {
         programs={programs ?? []}
         userEmail={user.email ?? ''}
         userId={user.id}
+        subscriptionPlan={profile?.subscription_plan ?? null}
       />
     </div>
   )
