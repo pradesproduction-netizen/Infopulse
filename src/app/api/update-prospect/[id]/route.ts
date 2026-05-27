@@ -1,55 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { maybeCreateClient, type ClientCreationResult } from '@/lib/auto-create-client'
 
 const ALLOWED_FIELDS = ['full_name', 'email', 'phone', 'source', 'estimated_value', 'pipeline_stage', 'instagram_url', 'linkedin_url', 'notes'] as const
-
-interface ClientCreationResult {
-  client_created: boolean
-  client_id?: string
-  client_name?: string
-}
-
-async function maybeCreateClient(
-  prospect: {
-    full_name: string
-    email: string | null
-    phone: string | null
-    estimated_value: number | null
-    infopreneur_id: string
-  },
-  admin: ReturnType<typeof createAdminClient>
-): Promise<ClientCreationResult> {
-  if (!prospect.email) return { client_created: false }
-
-  const { data: existing } = await admin
-    .from('clients')
-    .select('id')
-    .eq('infopreneur_id', prospect.infopreneur_id)
-    .eq('email', prospect.email)
-    .maybeSingle()
-
-  if (existing) return { client_created: false }
-
-  const today = new Date().toISOString().split('T')[0]
-  const { data: newClient } = await admin
-    .from('clients')
-    .insert({
-      infopreneur_id: prospect.infopreneur_id,
-      full_name: prospect.full_name,
-      email: prospect.email,
-      phone: prospect.phone ?? null,
-      status: 'onboarding',
-      total_amount: prospect.estimated_value ?? null,
-      start_date: today,
-    })
-    .select('id')
-    .single()
-
-  if (!newClient) return { client_created: false }
-
-  return { client_created: true, client_id: newClient.id, client_name: prospect.full_name }
-}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()

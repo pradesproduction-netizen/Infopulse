@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { maybeCreateClient } from '@/lib/auto-create-client'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -35,5 +37,21 @@ export async function POST(request: Request) {
   revalidatePath('/dashboard/equipe', 'layout')
   revalidatePath('/dashboard', 'page')
 
-  return Response.json({ success: true })
+  // Auto-create client when prospect is directly added to 'Gagné'
+  if (pipeline_stage === 'Gagné') {
+    const admin = createAdminClient()
+    const clientResult = await maybeCreateClient(
+      {
+        full_name: row.full_name,
+        email: row.email,
+        phone: row.phone,
+        estimated_value: row.estimated_value,
+        infopreneur_id: user.id,
+      },
+      admin
+    )
+    return Response.json({ success: true, ...clientResult })
+  }
+
+  return Response.json({ success: true, client_created: false })
 }

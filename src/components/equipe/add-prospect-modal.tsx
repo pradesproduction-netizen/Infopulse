@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Prospect } from '@/lib/types'
 
 interface AddProspectModalProps {
@@ -79,6 +80,17 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
     setLoading(false)
 
     if (res.ok) {
+      const data = await res.json()
+      if (data.client_created) {
+        const clientId = data.client_id as string
+        toast.success(`${data.client_name} ajouté automatiquement dans Clients`, {
+          action: {
+            label: 'Voir le profil →',
+            onClick: () => { window.location.href = `/dashboard/clients/${clientId}` },
+          },
+          duration: 6000,
+        })
+      }
       setOpen(false)
       reset()
       router.refresh()
