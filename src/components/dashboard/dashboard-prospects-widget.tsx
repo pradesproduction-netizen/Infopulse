@@ -3,7 +3,8 @@
 import { useProspectsKpis } from '@/hooks/use-prospects-kpis'
 import { WeeklyRecap } from '@/components/dashboard/weekly-recap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Euro, Phone, TrendingUp, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+import { Euro, Phone, TrendingUp, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 function StatCard({ title, value, sub, icon: Icon, iconBg }: {
@@ -78,13 +79,25 @@ export function DashboardProspectsWidget({
           icon={TrendingUp}
           iconBg="bg-green-500"
         />
-        <StatCard
-          title="Alertes critiques"
-          value={String(overdueCount)}
-          sub={overdueCount > 0 ? 'Clients en retard de paiement' : 'Aucun retard'}
-          icon={AlertTriangle}
-          iconBg={overdueCount > 0 ? 'bg-red-500' : 'bg-gray-500'}
-        />
+        {overdueCount > 0 ? (
+          <Link href="/dashboard/clients?filtre=retard" className="block group">
+            <StatCard
+              title="Relances paiement"
+              value={String(overdueCount)}
+              sub="Voir les clients concernés →"
+              icon={Bell}
+              iconBg="bg-red-500"
+            />
+          </Link>
+        ) : (
+          <StatCard
+            title="Relances paiement"
+            value="0"
+            sub="Aucun retard de paiement"
+            icon={Bell}
+            iconBg="bg-gray-500"
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

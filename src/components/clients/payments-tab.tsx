@@ -1,11 +1,25 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, CreditCard, Download } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Plus, Check, Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Payment } from '@/lib/types'
+
+function effectiveStatus(p: Payment): 'paid' | 'pending' | 'overdue' {
+  if (p.status === 'paid') return 'paid'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (new Date(p.payment_date + 'T00:00:00') < today) return 'overdue'
+  return 'pending'
+}
 
 const statusConfig = {
   paid: { label: 'Payé', className: 'bg-green-500/10 text-green-300 border-green-500/30' },
@@ -13,133 +27,205 @@ const statusConfig = {
   overdue: { label: 'En retard', className: 'bg-red-500/10 text-red-300 border-red-500/30' },
 }
 
-export function PaymentsTab({ payments }: { payments: Payment[]; clientId: string }) {
-  const nextPayment = payments.find((p) => p.status === 'pending' || p.status === 'overdue')
+interface PaymentsTabProps {
+  payments: Payment[]
+  clientId: string
+}
+
+export function PaymentsTab({ payments, clientId }: PaymentsTabProps) {
+  const router = useRouter()
+  const [addOpen, setAddOpen] = useState(false)
+  const [form, setForm] = useState({ payment_date: '', amount: '' })
+  const [saving, setSaving] = useState(false)
+  const [markingId, setMarkingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    const supabase = createClient()
+    await supabase.from('payments').insert({
+      client_id: clientId,
+      payment_date: form.payment_date,
+      amount: Number(form.amount),
+      status: 'pending',
+      paid_at: null,
+    })
+    setSaving(false)
+    setAddOpen(false)
+    setForm({ payment_date: '', amount: '' })
+    router.refresh()
+  }
+
+  async function handleMarkPaid(p: Payment) {
+    setMarkingId(p.id)
+    const supabase = createClient()
+    const today = new Date().toISOString().split('T')[0]
+    await supabase.from('payments').update({ status: 'paid', paid_at: today }).eq('id', p.id)
+    setMarkingId(null)
+    router.refresh()
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    const supabase = createClient()
+    await supabase.from('payments').delete().eq('id', id)
+    setDeletingId(null)
+    router.refresh()
+  }
+
+  const overdueCount = payments.filter((p) => effectiveStatus(p) === 'overdue').length
 
   return (
-    <div className="space-y-6">
-      {/* Prochain paiement */}
-      {nextPayment && (
-        <Card
-          className={cn(
-            'border',
-            nextPayment.status === 'overdue'
-              ? 'border-red-500/20 bg-red-500/5'
-              : 'border-violet-500/20 bg-violet-500/5'
-          )}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle
-              className={cn(
-                'text-sm flex items-center gap-2',
-                nextPayment.status === 'overdue' ? 'text-red-300' : 'text-violet-300'
-              )}
-            >
-              <CreditCard className="h-4 w-4" />
-              {nextPayment.status === 'overdue' ? 'Paiement en retard' : 'Prochain paiement'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <p className="text-3xl font-bold">
-                  {Number(nextPayment.amount).toLocaleString('fr-FR')} €
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {new Date(nextPayment.payment_date).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-              <Badge
-                variant="outline"
-                className={statusConfig[nextPayment.status].className}
-              >
-                {statusConfig[nextPayment.status].label}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Header + bouton */}
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Historique des paiements</h3>
-        <Button variant="outline" size="sm" className="border-white/10 gap-1.5">
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold">Échéancier de paiement</h3>
+          {overdueCount > 0 && (
+            <Badge variant="outline" className="bg-red-500/10 text-red-300 border-red-500/30 text-xs">
+              {overdueCount} en retard
+            </Badge>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-white/10 gap-1.5"
+          onClick={() => setAddOpen(true)}
+        >
           <Plus className="h-3.5 w-3.5" />
-          Enregistrer un paiement
+          Ajouter une échéance
         </Button>
       </div>
 
-      {/* Tableau */}
       {payments.length === 0 ? (
         <Card className="border-white/10 bg-card/50 p-8">
           <p className="text-center text-sm text-muted-foreground">
-            Aucun paiement enregistré.
+            Aucune échéance enregistrée. Clique sur &quot;+&quot; pour en ajouter une.
           </p>
         </Card>
       ) : (
         <Card className="border-white/10 bg-card/50 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left p-4 text-xs font-medium text-muted-foreground">Date</th>
-                  <th className="text-left p-4 text-xs font-medium text-muted-foreground">Montant</th>
-                  <th className="text-left p-4 text-xs font-medium text-muted-foreground">Statut</th>
-                  <th className="text-left p-4 text-xs font-medium text-muted-foreground">Reçu</th>
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Date prévue</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Montant</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Statut</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Date réelle</th>
+                  <th className="p-3" />
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
-                  <tr
-                    key={payment.id}
-                    className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors"
-                  >
-                    <td className="p-4 text-sm">
-                      {new Date(payment.payment_date).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td className="p-4 text-sm font-medium">
-                      {Number(payment.amount).toLocaleString('fr-FR')} €
-                    </td>
-                    <td className="p-4">
-                      <Badge
-                        variant="outline"
-                        className={cn('text-xs', statusConfig[payment.status].className)}
-                      >
-                        {statusConfig[payment.status].label}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      {payment.receipt_url ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 text-violet-400 hover:text-violet-300"
-                          asChild
-                        >
-                          <a
-                            href={payment.receipt_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Download className="h-3 w-3" />
-                            Télécharger
-                          </a>
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                {payments.map((p) => {
+                  const status = effectiveStatus(p)
+                  return (
+                    <tr
+                      key={p.id}
+                      className={cn(
+                        'border-b border-white/5 last:border-0 transition-colors',
+                        status === 'overdue' ? 'bg-red-500/[0.03] hover:bg-red-500/[0.05]' : 'hover:bg-white/[0.02]'
                       )}
-                    </td>
-                  </tr>
-                ))}
+                    >
+                      <td className="p-3">
+                        {new Date(p.payment_date + 'T00:00:00').toLocaleDateString('fr-FR')}
+                      </td>
+                      <td className="p-3 font-medium">
+                        {Number(p.amount).toLocaleString('fr-FR')} €
+                      </td>
+                      <td className="p-3">
+                        <Badge variant="outline" className={cn('text-xs', statusConfig[status].className)}>
+                          {statusConfig[status].label}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {p.paid_at
+                          ? new Date(p.paid_at + 'T00:00:00').toLocaleDateString('fr-FR')
+                          : '—'}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          {status !== 'paid' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 gap-1 text-green-400 hover:text-green-300 hover:bg-green-500/10 text-xs"
+                              onClick={() => handleMarkPaid(p)}
+                              disabled={markingId === p.id}
+                            >
+                              {markingId === p.id
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : <Check className="h-3 w-3" />}
+                              Payé
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 hover:text-destructive"
+                            onClick={() => handleDelete(p.id)}
+                            disabled={deletingId === p.id}
+                          >
+                            {deletingId === p.id
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <Trash2 className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         </Card>
       )}
+
+      <Dialog open={addOpen} onOpenChange={(v) => { if (!v) { setAddOpen(false); setForm({ payment_date: '', amount: '' }) } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ajouter une échéance</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAdd} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="pay_date">Date prévue *</Label>
+              <Input
+                id="pay_date"
+                type="date"
+                value={form.payment_date}
+                onChange={(e) => setForm((f) => ({ ...f, payment_date: e.target.value }))}
+                required
+                disabled={saving}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pay_amount">Montant (€) *</Label>
+              <Input
+                id="pay_amount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="1000"
+                value={form.amount}
+                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                required
+                disabled={saving}
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={saving}>
+                Annuler
+              </Button>
+              <Button type="submit" disabled={saving || !form.payment_date || !form.amount}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Ajouter
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

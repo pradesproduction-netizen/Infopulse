@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Users, Search, Mail, Phone, Calendar } from 'lucide-react'
+import { Users, Search, Mail, Phone, Calendar, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Client {
@@ -23,6 +23,7 @@ interface Client {
 
 interface ClientsListProps {
   clients: Client[]
+  overdueAmounts?: Record<string, number>
 }
 
 const statusConfig = {
@@ -31,7 +32,7 @@ const statusConfig = {
   termine: { label: 'Terminé', color: 'bg-gray-500/10 text-gray-300 border-gray-500/30' },
 }
 
-export function ClientsList({ clients }: ClientsListProps) {
+export function ClientsList({ clients, overdueAmounts = {} }: ClientsListProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
@@ -155,8 +156,14 @@ export function ClientsList({ clients }: ClientsListProps) {
                     </div>
                   </div>
 
-                  {/* Programme + montant */}
+                  {/* Programme + montant + overdue */}
                   <div className="text-right hidden sm:block">
+                    {overdueAmounts[client.id] != null && (
+                      <div className="flex items-center gap-1 justify-end text-red-400 text-xs font-semibold mb-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        {overdueAmounts[client.id].toLocaleString('fr-FR')} € en retard
+                      </div>
+                    )}
                     {client.program_name && (
                       <div className="text-sm font-medium">{client.program_name}</div>
                     )}

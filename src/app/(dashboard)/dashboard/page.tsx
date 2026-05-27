@@ -77,7 +77,9 @@ export default async function DashboardPage() {
     .filter((p) => p.status === 'pending' && p.payment_date >= today && p.payment_date <= in7Days)
     .reduce((s, p) => s + p.amount, 0)
 
-  const overdueCount = allPayments.filter((p) => p.status === 'overdue').length
+  const overdueCount = allPayments.filter(
+    (p) => p.status !== 'paid' && p.payment_date < today
+  ).length
 
   const caWeek = allPayments
     .filter((p) => p.status === 'paid' && p.payment_date >= mondayStr && p.payment_date <= sundayStr)

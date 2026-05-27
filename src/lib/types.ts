@@ -52,8 +52,17 @@ export interface Payment {
   amount: number
   payment_date: string
   status: 'paid' | 'pending' | 'overdue'
+  paid_at: string | null
   receipt_url: string | null
   notes: string | null
+}
+
+export interface ClientProgram {
+  id: string
+  client_id: string
+  program_id: string
+  created_at: string
+  program?: Program
 }
 
 export interface Contract {

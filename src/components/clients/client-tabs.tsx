@@ -2,7 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LayoutDashboard, CreditCard, FileText, Phone, StickyNote } from 'lucide-react'
-import type { Client, CoachingStep, Payment, Contract, Call } from '@/lib/types'
+import type { Client, CoachingStep, Payment, Contract, Call, ClientProgram, Program } from '@/lib/types'
 import { OverviewTab } from './overview-tab'
 import { PaymentsTab } from './payments-tab'
 import { ContractsTab } from './contracts-tab'
@@ -15,6 +15,8 @@ interface ClientTabsProps {
   payments: Payment[]
   contracts: Contract[]
   calls: Call[]
+  clientPrograms: ClientProgram[]
+  availablePrograms: Program[]
 }
 
 export function ClientTabs({
@@ -23,7 +25,12 @@ export function ClientTabs({
   payments,
   contracts,
   calls,
+  clientPrograms,
+  availablePrograms,
 }: ClientTabsProps) {
+  const today = new Date().toISOString().split('T')[0]
+  const hasOverdue = payments.some((p) => p.status !== 'paid' && p.payment_date < today)
+
   return (
     <Tabs defaultValue="overview">
       <TabsList className="h-auto p-1 flex flex-wrap gap-0.5">
@@ -34,9 +41,7 @@ export function ClientTabs({
         <TabsTrigger value="payments" className="gap-2 text-xs sm:text-sm">
           <CreditCard className="h-3.5 w-3.5" />
           Paiements
-          {payments.some((p) => p.status === 'overdue') && (
-            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-          )}
+          {hasOverdue && <span className="h-1.5 w-1.5 rounded-full bg-red-400" />}
         </TabsTrigger>
         <TabsTrigger value="contracts" className="gap-2 text-xs sm:text-sm">
           <FileText className="h-3.5 w-3.5" />
@@ -53,7 +58,12 @@ export function ClientTabs({
       </TabsList>
 
       <TabsContent value="overview" className="mt-6">
-        <OverviewTab client={client} coachingSteps={coachingSteps} />
+        <OverviewTab
+          client={client}
+          coachingSteps={coachingSteps}
+          clientPrograms={clientPrograms}
+          availablePrograms={availablePrograms}
+        />
       </TabsContent>
       <TabsContent value="payments" className="mt-6">
         <PaymentsTab payments={payments} clientId={client.id} />
