@@ -9,6 +9,15 @@ import Link from 'next/link'
 import { Euro, Phone, TrendingUp, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+function getUpcomingPaymentsSub(): string {
+  const now = new Date()
+  const raw = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const monthLabel = raw.charAt(0).toUpperCase() + raw.slice(1)
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const daysLeft = lastDayOfMonth - now.getDate()
+  return `${monthLabel} · ${daysLeft} jour${daysLeft !== 1 ? 's' : ''} restant${daysLeft !== 1 ? 's' : ''}`
+}
+
 function StatCard({ title, value, sub, icon: Icon, iconBg }: {
   title: string; value: string; sub: string; icon: React.ElementType; iconBg: string
 }) {
@@ -77,7 +86,7 @@ export function DashboardProspectsWidget({
         <StatCard
           title="Paiements à venir"
           value={upcomingTotal > 0 ? `${upcomingTotal.toLocaleString('fr-FR')} €` : '— €'}
-          sub="Mois en cours (pending + à relancer)"
+          sub={getUpcomingPaymentsSub()}
           icon={TrendingUp}
           iconBg="bg-green-500"
         />
