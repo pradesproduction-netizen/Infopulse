@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { Trash2 } from 'lucide-react'
@@ -10,31 +11,39 @@ import { toast } from 'sonner'
 interface DeleteClientButtonProps {
   clientId: string
   clientName: string
+  clientEmail?: string | null
 }
 
-export function DeleteClientButton({ clientId, clientName }: DeleteClientButtonProps) {
+export function DeleteClientButton({ clientId, clientName, clientEmail }: DeleteClientButtonProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleDelete = async () => {
     setLoading(true)
-    const res = await fetch(`/api/delete-client/${clientId}`, { method: 'DELETE' })
+    const supabase = createClient()
+
+    // 1. Supprimer le prospect "Gagné" correspondant
+    const orFilter = clientEmail
+      ? `email.eq.${clientEmail},full_name.eq.${clientName}`
+      : `full_name.eq.${clientName}`
+    await supabase.from('prospects').delete().eq('pipeline_stage', 'Gagné').or(orFilter)
+
+    // 2. Supprimer les payments du client
+    await supabase.from('payments').delete().eq('client_id', clientId)
+
+    // 3. Supprimer le client
+    const { error } = await supabase.from('clients').delete().eq('id', clientId)
+
     setLoading(false)
     setOpen(false)
 
-    const data = await res.json().catch(() => ({}))
-
-    if (!res.ok) {
-      toast.error((data as { error?: string }).error ?? 'Erreur lors de la suppression')
+    if (error) {
+      toast.error('Erreur lors de la suppression')
       return
     }
 
-    const name = (data.client_name as string | undefined) ?? clientName
-    const message = data.prospect_deleted
-      ? `${name} supprimé des clients et de la pipeline`
-      : `${name} supprimé des clients`
-    toast.success(message, { duration: 4000 })
+    toast.success(`🗑️ ${clientName} supprimé des clients et de la pipeline`, { duration: 4000 })
     router.push('/dashboard/clients')
   }
 
