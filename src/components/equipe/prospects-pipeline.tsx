@@ -300,7 +300,11 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
     setDeletingProspect(null)
     try {
       const res = await fetch(`/api/update-prospect/${id}`, { method: 'DELETE' })
-      if (!res.ok) router.refresh()
+      if (!res.ok) { router.refresh(); return }
+      const data = await res.json()
+      if (data.client_deleted) {
+        toast.success(`${data.client_name} supprimé des clients`, { duration: 4000 })
+      }
     } catch {
       router.refresh()
     }

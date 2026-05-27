@@ -136,10 +136,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params
   const admin = createAdminClient()
 
-  // Look up the prospect's owner to authorize the request
+  // Look up the prospect's owner + stage/email for client cascade
   const { data: prospect } = await admin
     .from('prospects')
-    .select('infopreneur_id')
+    .select('infopreneur_id, email, full_name, pipeline_stage')
     .eq('id', id)
     .single()
 
@@ -160,7 +160,26 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     if (!member) return Response.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
-  // Delete via admin client (bypasses RLS, authorization already verified above)
+  // If prospect was 'Gagné' and has an email, cascade-delete the matching client
+  let client_deleted = false
+  let client_name: string | undefined
+  if (prospect.pipeline_stage === 'Gagné' && prospect.email) {
+    const { data: existingClient } = await admin
+      .from('clients')
+      .select('id, full_name')
+      .eq('infopreneur_id', prospect.infopreneur_id)
+      .eq('email', prospect.email)
+      .maybeSingle()
+
+    if (existingClient) {
+      await admin.from('clients').delete().eq('id', existingClient.id)
+      client_deleted = true
+      client_name = existingClient.full_name as string
+      revalidatePath('/dashboard/clients', 'page')
+    }
+  }
+
+  // Delete the prospect
   const { error } = await admin
     .from('prospects')
     .delete()
@@ -174,5 +193,5 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   revalidatePath('/dashboard/equipe', 'layout')
   revalidatePath('/dashboard', 'page')
   revalidatePath('/espace-equipe/pipeline', 'page')
-  return Response.json({ success: true })
+  return Response.json({ success: true, client_deleted, client_name })
 }
