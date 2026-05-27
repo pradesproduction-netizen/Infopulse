@@ -24,9 +24,11 @@ export function DeleteClientButton({ clientId, clientName }: DeleteClientButtonP
     setOpen(false)
     if (res.ok) {
       const data = await res.json()
-      if (data.prospect_deleted) {
-        toast.success(`${data.prospect_name} supprimé de la pipeline`, { duration: 4000 })
-      }
+      const name = (data.client_name as string | undefined) ?? clientName
+      const message = data.prospect_deleted
+        ? `${name} supprimé des clients et de la pipeline`
+        : `${name} supprimé des clients`
+      toast.success(message, { duration: 4000 })
       router.push('/dashboard/clients')
     }
   }

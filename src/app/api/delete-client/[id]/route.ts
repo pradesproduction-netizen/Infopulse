@@ -56,7 +56,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     revalidatePath('/espace-equipe/pipeline', 'page')
   }
 
-  // Delete the client (DB cascade handles payments, contracts, etc.)
+  // Explicitly delete payments so realtime channels (use-payment-alerts, use-upcoming-payments) fire
+  await admin.from('payments').delete().eq('client_id', id)
+
+  // Delete the client
   const { error } = await admin.from('clients').delete().eq('id', id)
   if (error) {
     console.error('[delete-client] DELETE error:', error.message)
@@ -64,5 +67,5 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   revalidatePath('/dashboard/clients', 'page')
-  return Response.json({ success: true, prospect_deleted, prospect_name })
+  return Response.json({ success: true, prospect_deleted, prospect_name, client_name: client.full_name })
 }
