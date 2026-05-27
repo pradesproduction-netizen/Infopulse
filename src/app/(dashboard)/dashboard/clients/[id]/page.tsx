@@ -38,10 +38,6 @@ export default async function ClientDetailPage({
   if (!client) notFound()
   if (client.infopreneur_id !== user.id) redirect('/dashboard/clients')
 
-  const caGenere = (payments ?? [])
-    .filter((p) => p.status === 'paid')
-    .reduce((s, p) => s + Number(p.amount), 0)
-
   const steps = coachingSteps ?? []
   const progressionPct = steps.length > 0
     ? Math.round((steps.filter((s) => s.status === 'completed').length / steps.length) * 100)
@@ -49,6 +45,11 @@ export default async function ClientDetailPage({
 
   const typedClientPrograms = (clientPrograms ?? []) as ClientProgram[]
   const programName = typedClientPrograms[0]?.program?.name ?? client.program_name ?? null
+
+  // Sum of linked program prices; fall back to manual total_amount
+  const totalAmount = typedClientPrograms.length > 0
+    ? typedClientPrograms.reduce((s, cp) => s + (cp.program?.price ?? 0), 0)
+    : (client.total_amount ?? 0)
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -61,7 +62,7 @@ export default async function ClientDetailPage({
       </Link>
       <ClientHeader
         client={client}
-        caGenere={caGenere}
+        totalAmount={totalAmount}
         progressionPct={progressionPct}
         programName={programName}
       />
