@@ -127,11 +127,10 @@ function MemberCard({ member, calls }: MemberCardProps) {
 
   async function handleDelete() {
     setDeleteLoading(true)
-    const supabase = createClient()
-    await supabase.from('team_members').delete().eq('id', member.id)
+    const res = await fetch(`/api/delete-member/${member.id}`, { method: 'DELETE' })
     setDeleteLoading(false)
     setDeleteOpen(false)
-    router.refresh()
+    if (res.ok) router.refresh()
   }
 
   return (
