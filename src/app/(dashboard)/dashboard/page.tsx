@@ -28,7 +28,6 @@ export default async function DashboardPage() {
 
   const now = new Date()
   const today = now.toISOString().split('T')[0]
-  const in7Days = new Date(now.getTime() + 7 * 86400 * 1000).toISOString().split('T')[0]
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
   const { monday, sunday } = getWeekBounds()
@@ -73,10 +72,6 @@ export default async function DashboardPage() {
     ? Math.round((prospectHonored / (prospectHonored + prospectNoShows)) * 100)
     : 0
 
-  const upcomingPaymentsTotal = allPayments
-    .filter((p) => p.status === 'pending' && p.payment_date >= today && p.payment_date <= in7Days)
-    .reduce((s, p) => s + p.amount, 0)
-
   const overdueCount = allPayments.filter((p) => p.status === 'a_relancer').length
 
   const caWeek = allPayments
@@ -93,7 +88,6 @@ export default async function DashboardPage() {
     <div className="p-6 space-y-6">
       <DashboardProspectsWidget
         infopreneurId={user.id}
-        upcomingPaymentsTotal={upcomingPaymentsTotal}
         overdueCount={overdueCount}
         caWeek={caWeek}
         caTarget={weeklyTarget}

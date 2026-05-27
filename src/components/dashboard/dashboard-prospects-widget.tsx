@@ -2,6 +2,7 @@
 
 import { useProspectsKpis } from '@/hooks/use-prospects-kpis'
 import { usePaymentAlerts } from '@/hooks/use-payment-alerts'
+import { useUpcomingPayments } from '@/hooks/use-upcoming-payments'
 import { WeeklyRecap } from '@/components/dashboard/weekly-recap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
@@ -29,7 +30,6 @@ function StatCard({ title, value, sub, icon: Icon, iconBg }: {
 
 interface DashboardProspectsWidgetProps {
   infopreneurId: string
-  upcomingPaymentsTotal: number
   overdueCount: number
   caWeek: number
   caTarget: number
@@ -43,7 +43,6 @@ interface DashboardProspectsWidgetProps {
 
 export function DashboardProspectsWidget({
   infopreneurId,
-  upcomingPaymentsTotal,
   overdueCount,
   caWeek,
   caTarget,
@@ -56,6 +55,7 @@ export function DashboardProspectsWidget({
 }: DashboardProspectsWidgetProps) {
   const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId)
   const alertCount = usePaymentAlerts(infopreneurId)
+  const upcomingTotal = useUpcomingPayments(infopreneurId)
 
   return (
     <div className="space-y-6">
@@ -76,8 +76,8 @@ export function DashboardProspectsWidget({
         />
         <StatCard
           title="Paiements à venir"
-          value={upcomingPaymentsTotal > 0 ? `${upcomingPaymentsTotal.toLocaleString('fr-FR')} €` : '— €'}
-          sub="Dans les 7 prochains jours"
+          value={upcomingTotal > 0 ? `${upcomingTotal.toLocaleString('fr-FR')} €` : '— €'}
+          sub="Mois en cours (pending + à relancer)"
           icon={TrendingUp}
           iconBg="bg-green-500"
         />
