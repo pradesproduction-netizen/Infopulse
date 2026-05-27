@@ -92,7 +92,7 @@ export function NewClientButton() {
           client_id: newClient.id,
           amount: parseFloat(formData.total_amount),
           payment_date: formData.start_date,
-          status: 'pending',
+          status: 'paid',
           paid_at: null,
         })
       }
