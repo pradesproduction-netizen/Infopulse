@@ -4,6 +4,53 @@ import { revalidatePath } from 'next/cache'
 
 const ALLOWED_FIELDS = ['full_name', 'email', 'phone', 'source', 'estimated_value', 'pipeline_stage', 'instagram_url', 'linkedin_url', 'notes'] as const
 
+interface ClientCreationResult {
+  client_created: boolean
+  client_id?: string
+  client_name?: string
+}
+
+async function maybeCreateClient(
+  prospect: {
+    full_name: string
+    email: string | null
+    phone: string | null
+    estimated_value: number | null
+    infopreneur_id: string
+  },
+  admin: ReturnType<typeof createAdminClient>
+): Promise<ClientCreationResult> {
+  if (!prospect.email) return { client_created: false }
+
+  const { data: existing } = await admin
+    .from('clients')
+    .select('id')
+    .eq('infopreneur_id', prospect.infopreneur_id)
+    .eq('email', prospect.email)
+    .maybeSingle()
+
+  if (existing) return { client_created: false }
+
+  const today = new Date().toISOString().split('T')[0]
+  const { data: newClient } = await admin
+    .from('clients')
+    .insert({
+      infopreneur_id: prospect.infopreneur_id,
+      full_name: prospect.full_name,
+      email: prospect.email,
+      phone: prospect.phone ?? null,
+      status: 'onboarding',
+      total_amount: prospect.estimated_value ?? null,
+      start_date: today,
+    })
+    .select('id')
+    .single()
+
+  if (!newClient) return { client_created: false }
+
+  return { client_created: true, client_id: newClient.id, client_name: prospect.full_name }
+}
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,6 +71,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     updates.estimated_value = Number(updates.estimated_value)
   }
 
+  const admin = createAdminClient()
+  const becomingGagne = updates.pipeline_stage === 'Gagné'
+
   // Infopreneur path — RLS handles authorization
   const { data } = await supabase
     .from('prospects')
@@ -36,11 +86,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (data) {
     revalidatePath('/dashboard/equipe', 'layout')
     revalidatePath('/dashboard', 'page')
-    return Response.json({ success: true, prospect: data })
+
+    let clientResult: ClientCreationResult = { client_created: false }
+    if (becomingGagne) {
+      clientResult = await maybeCreateClient(data as Parameters<typeof maybeCreateClient>[0], admin)
+      if (clientResult.client_created) revalidatePath('/dashboard/clients', 'page')
+    }
+
+    return Response.json({ success: true, prospect: data, ...clientResult })
   }
 
   // Team member path — look up infopreneur_id via admin client
-  const admin = createAdminClient()
   const { data: member } = await admin
     .from('team_members')
     .select('infopreneur_id')
@@ -62,8 +118,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return Response.json({ error: error.message }, { status: 500 })
   }
 
+  let clientResult: ClientCreationResult = { client_created: false }
+  if (becomingGagne) {
+    clientResult = await maybeCreateClient(updated as Parameters<typeof maybeCreateClient>[0], admin)
+    if (clientResult.client_created) revalidatePath('/dashboard/clients', 'page')
+  }
+
   revalidatePath('/espace-equipe/pipeline', 'page')
-  return Response.json({ success: true, prospect: updated })
+  return Response.json({ success: true, prospect: updated, ...clientResult })
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {

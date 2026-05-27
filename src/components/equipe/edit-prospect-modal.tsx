@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Prospect } from '@/lib/types'
 
 const SOURCES = [
@@ -93,6 +94,16 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
 
     if (res.ok) {
       const data = await res.json()
+      if (data.client_created) {
+        const clientId = data.client_id as string
+        toast.success(`${data.client_name} ajouté automatiquement dans Clients`, {
+          action: {
+            label: 'Voir le profil →',
+            onClick: () => { window.location.href = `/dashboard/clients/${clientId}` },
+          },
+          duration: 6000,
+        })
+      }
       onSaved(data.prospect as Prospect)
     } else {
       const data = await res.json()

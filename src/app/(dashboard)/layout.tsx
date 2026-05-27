@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardHeader } from '@/components/dashboard/header'
 import { AIChatBubble } from '@/components/dashboard/ai-chat-bubble'
+import { Toaster } from '@/components/ui/sonner'
 
 export default async function DashboardLayout({
   children,
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
         </main>
       </div>
       <AIChatBubble />
+      <Toaster position="bottom-right" />
     </div>
   )
 }

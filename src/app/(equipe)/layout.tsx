@@ -1,5 +1,6 @@
 import { getAuthenticatedTeamMember } from '@/lib/get-team-member'
 import { EquipeSidebar } from '@/components/espace-equipe/equipe-sidebar'
+import { Toaster } from '@/components/ui/sonner'
 
 export default async function EquipeLayout({
   children,
@@ -14,6 +15,7 @@ export default async function EquipeLayout({
       <main className="flex-1 ml-60 overflow-auto">
         {children}
       </main>
+      <Toaster position="bottom-right" />
     </div>
   )
 }

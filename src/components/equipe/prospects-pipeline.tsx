@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   DndContext,
   DragOverlay,
@@ -273,7 +274,20 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pipeline_stage: newStage }),
       })
-      if (!res.ok) router.refresh()
+      if (!res.ok) { router.refresh(); return }
+      if (newStage === 'Gagné') {
+        const data = await res.json()
+        if (data.client_created) {
+          const clientId = data.client_id as string
+          toast.success(`${data.client_name} ajouté automatiquement dans Clients`, {
+            action: {
+              label: 'Voir le profil →',
+              onClick: () => router.push(`/dashboard/clients/${clientId}`),
+            },
+            duration: 6000,
+          })
+        }
+      }
     } catch {
       router.refresh()
     }
