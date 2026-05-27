@@ -32,7 +32,7 @@ export function ClientTabs({
   const hasOverdue = payments.some((p) => p.status !== 'paid' && p.payment_date < today)
 
   return (
-    <Tabs defaultValue="overview">
+    <Tabs defaultValue="overview" className="flex-col">
       <TabsList className="h-auto p-1 flex flex-wrap gap-0.5">
         <TabsTrigger value="overview" className="gap-2 text-xs sm:text-sm">
           <LayoutDashboard className="h-3.5 w-3.5" />

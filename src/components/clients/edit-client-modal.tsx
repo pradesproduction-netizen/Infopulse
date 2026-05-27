@@ -47,6 +47,8 @@ export function EditClientModal({ client, open, onOpenChange }: EditClientModalP
     program_name: client.program_name ?? '',
     total_amount: client.total_amount?.toString() ?? '',
     notes: client.notes ?? '',
+    instagram_url: client.instagram_url ?? '',
+    linkedin_url: client.linkedin_url ?? '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +68,8 @@ export function EditClientModal({ client, open, onOpenChange }: EditClientModalP
         program_name: formData.program_name || null,
         total_amount: formData.total_amount ? parseFloat(formData.total_amount) : null,
         notes: formData.notes || null,
+        instagram_url: formData.instagram_url.trim() || null,
+        linkedin_url: formData.linkedin_url.trim() || null,
       })
       .eq('id', client.id)
 
@@ -192,6 +196,29 @@ export function EditClientModal({ client, open, onOpenChange }: EditClientModalP
                 onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
                 disabled={loading}
                 placeholder="3000"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit_instagram">Instagram</Label>
+              <Input
+                id="edit_instagram"
+                value={formData.instagram_url}
+                onChange={(e) => setFormData({ ...formData, instagram_url: e.target.value })}
+                disabled={loading}
+                placeholder="instagram.com/user"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_linkedin">LinkedIn</Label>
+              <Input
+                id="edit_linkedin"
+                value={formData.linkedin_url}
+                onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+                disabled={loading}
+                placeholder="linkedin.com/in/user"
               />
             </div>
           </div>

@@ -32,6 +32,8 @@ export interface Client {
   total_amount: number | null
   program_name: string | null
   notes: string | null
+  instagram_url: string | null
+  linkedin_url: string | null
   created_at: string
   updated_at: string | null
 }

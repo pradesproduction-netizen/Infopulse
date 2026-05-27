@@ -12,6 +12,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ChevronDown, Pencil } from 'lucide-react'
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" strokeWidth="0" />
+    </svg>
+  )
+}
+
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z" />
+      <rect x="2" y="9" width="4" height="12" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
+  )
+}
+
+function socialHref(url: string) {
+  return url.startsWith('http') ? url : `https://${url}`
+}
 import type { Client } from '@/lib/types'
 import { EditClientModal } from './edit-client-modal'
 import { DeleteClientButton } from './delete-client-button'
@@ -75,6 +99,31 @@ export function ClientHeader({ client, totalAmount, progressionPct, programName 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl font-bold leading-tight">{client.full_name}</h1>
+
+              {client.instagram_url && (
+                <a
+                  href={socialHref(client.instagram_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-6 w-6 flex items-center justify-center rounded text-pink-400 hover:text-pink-300 hover:bg-pink-500/15 transition-colors"
+                  title="Instagram"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <InstagramIcon className="h-4 w-4" />
+                </a>
+              )}
+              {client.linkedin_url && (
+                <a
+                  href={socialHref(client.linkedin_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-6 w-6 flex items-center justify-center rounded text-blue-400 hover:text-blue-300 hover:bg-blue-500/15 transition-colors"
+                  title="LinkedIn"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <LinkedInIcon className="h-4 w-4" />
+                </a>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild disabled={statusLoading}>
