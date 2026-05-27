@@ -63,20 +63,6 @@ export default async function DashboardPage() {
   const allPayments = payments ?? []
   const allProspects = (prospects ?? []) as Prospect[]
 
-  // Initial KPI values for DashboardProspectsWidget (server snapshot)
-  const initialCaMonth = allProspects
-    .filter((p) =>
-      p.pipeline_stage === 'Gagné' &&
-      p.updated_at !== null &&
-      p.updated_at >= startOfMonth &&
-      p.updated_at < startOfNextMonth
-    )
-    .reduce((s, p) => s + (p.estimated_value ?? 0), 0)
-
-  const initialTotal = allProspects.length
-
-  const initialRdvBooke = allProspects.filter((p) => p.pipeline_stage === 'RDV booké').length
-
   // Static values for WeeklyRecap (not realtime — computed once at render)
   const prospectTotal = allProspects.length
   const prospectWon = allProspects.filter((p) => p.pipeline_stage === 'Gagné').length
@@ -107,9 +93,6 @@ export default async function DashboardPage() {
     <div className="p-6 space-y-6">
       <DashboardProspectsWidget
         infopreneurId={user.id}
-        initialCaMonth={initialCaMonth}
-        initialTotal={initialTotal}
-        initialRdvBooke={initialRdvBooke}
         upcomingPaymentsTotal={upcomingPaymentsTotal}
         overdueCount={overdueCount}
         caWeek={caWeek}

@@ -4,16 +4,15 @@ import { useProspects } from '@/hooks/use-prospects'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Prospect, TeamMember } from '@/lib/types'
+import type { TeamMember } from '@/lib/types'
 
 interface TeamProspectsKpiProps {
-  initialProspects: Prospect[]
   teamMembers: TeamMember[]
   infopreneurId: string
 }
 
-export function TeamProspectsKpi({ initialProspects, teamMembers, infopreneurId }: TeamProspectsKpiProps) {
-  const prospects = useProspects(infopreneurId, initialProspects)
+export function TeamProspectsKpi({ teamMembers, infopreneurId }: TeamProspectsKpiProps) {
+  const prospects = useProspects(infopreneurId)
 
   const total = prospects.length
 

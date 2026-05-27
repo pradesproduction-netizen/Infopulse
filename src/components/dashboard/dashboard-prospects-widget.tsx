@@ -27,9 +27,6 @@ function StatCard({ title, value, sub, icon: Icon, iconBg }: {
 
 interface DashboardProspectsWidgetProps {
   infopreneurId: string
-  initialCaMonth: number
-  initialTotal: number
-  initialRdvBooke: number
   upcomingPaymentsTotal: number
   overdueCount: number
   caWeek: number
@@ -44,9 +41,6 @@ interface DashboardProspectsWidgetProps {
 
 export function DashboardProspectsWidget({
   infopreneurId,
-  initialCaMonth,
-  initialTotal,
-  initialRdvBooke,
   upcomingPaymentsTotal,
   overdueCount,
   caWeek,
@@ -58,11 +52,7 @@ export function DashboardProspectsWidget({
   weekLabel,
   children,
 }: DashboardProspectsWidgetProps) {
-  const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId, {
-    caMonth: initialCaMonth,
-    total: initialTotal,
-    rdvBooke: initialRdvBooke,
-  })
+  const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId)
 
   return (
     <div className="space-y-6">

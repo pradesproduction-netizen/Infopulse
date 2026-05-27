@@ -9,11 +9,8 @@ interface ProspectsKpis {
   rdvBooke: number
 }
 
-export function useProspectsKpis(
-  infopreneurId: string,
-  initial: ProspectsKpis
-): ProspectsKpis {
-  const [kpis, setKpis] = useState<ProspectsKpis>(initial)
+export function useProspectsKpis(infopreneurId: string): ProspectsKpis {
+  const [kpis, setKpis] = useState<ProspectsKpis>({ caMonth: 0, total: 0, rdvBooke: 0 })
 
   useEffect(() => {
     const supabase = createClient()
@@ -53,11 +50,9 @@ export function useProspectsKpis(
 
     const channel = supabase
       .channel(`kpis-${infopreneurId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` },
-        () => { void refetch() }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }

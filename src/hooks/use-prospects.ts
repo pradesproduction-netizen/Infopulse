@@ -4,12 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Prospect } from '@/lib/types'
 
-export function useProspects(infopreneurId: string, initial: Prospect[]): Prospect[] {
-  const [prospects, setProspects] = useState<Prospect[]>(initial)
-
-  useEffect(() => {
-    setProspects(initial)
-  }, [initial])
+export function useProspects(infopreneurId: string): Prospect[] {
+  const [prospects, setProspects] = useState<Prospect[]>([])
 
   useEffect(() => {
     const supabase = createClient()
@@ -26,11 +22,9 @@ export function useProspects(infopreneurId: string, initial: Prospect[]): Prospe
 
     const channel = supabase
       .channel(`prospects-${infopreneurId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` },
-        () => { void refetch() }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
