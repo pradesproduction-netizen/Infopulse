@@ -42,10 +42,11 @@ import { DeleteClientButton } from './delete-client-button'
 import { InviteClientButton } from './invite-client-button'
 import { cn } from '@/lib/utils'
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; className: string }> = {
   onboarding: { label: 'Onboarding', className: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
   actif:      { label: 'Actif',      className: 'bg-green-500/10 text-green-300 border-green-500/30' },
   termine:    { label: 'Terminé',    className: 'bg-gray-500/10 text-gray-300 border-gray-500/30' },
+  en_pause:   { label: 'En pause',   className: 'bg-orange-500/10 text-orange-300 border-orange-500/30' },
 }
 
 interface ClientHeaderProps {
@@ -146,6 +147,9 @@ export function ClientHeader({ client, totalAmount, progressionPct, programName 
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleStatusChange('actif')}>
                     🟢 Actif
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange('en_pause')}>
+                    🟠 En pause
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleStatusChange('termine')}>
                     ⚪ Terminé

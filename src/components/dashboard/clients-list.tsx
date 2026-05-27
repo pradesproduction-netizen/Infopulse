@@ -15,7 +15,7 @@ interface Client {
   email: string
   phone: string | null
   company: string | null
-  status: 'onboarding' | 'actif' | 'termine'
+  status: 'onboarding' | 'actif' | 'termine' | 'en_pause'
   start_date: string | null
   total_amount: number | null
   program_name: string | null
@@ -26,10 +26,11 @@ interface ClientsListProps {
   overdueAmounts?: Record<string, number>
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   onboarding: { label: 'Onboarding', color: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30' },
-  actif: { label: 'Actif', color: 'bg-green-500/10 text-green-300 border-green-500/30' },
-  termine: { label: 'Terminé', color: 'bg-gray-500/10 text-gray-300 border-gray-500/30' },
+  actif:      { label: 'Actif',      color: 'bg-green-500/10 text-green-300 border-green-500/30' },
+  termine:    { label: 'Terminé',    color: 'bg-gray-500/10 text-gray-300 border-gray-500/30' },
+  en_pause:   { label: 'En pause',   color: 'bg-orange-500/10 text-orange-300 border-orange-500/30' },
 }
 
 export function ClientsList({ clients, overdueAmounts = {} }: ClientsListProps) {
@@ -85,6 +86,7 @@ export function ClientsList({ clients, overdueAmounts = {} }: ClientsListProps) 
             { value: 'all', label: 'Tous' },
             { value: 'onboarding', label: 'Onboarding' },
             { value: 'actif', label: 'Actif' },
+            { value: 'en_pause', label: 'En pause' },
             { value: 'termine', label: 'Terminé' },
           ].map((tab) => (
             <button

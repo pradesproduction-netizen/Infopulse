@@ -149,7 +149,7 @@ export function EditClientModal({ client, open, onOpenChange }: EditClientModalP
               <Label>Statut</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value: 'onboarding' | 'actif' | 'termine') =>
+                onValueChange={(value: 'onboarding' | 'actif' | 'termine' | 'en_pause') =>
                   setFormData({ ...formData, status: value })
                 }
               >
@@ -159,6 +159,7 @@ export function EditClientModal({ client, open, onOpenChange }: EditClientModalP
                 <SelectContent>
                   <SelectItem value="onboarding">🟡 Onboarding</SelectItem>
                   <SelectItem value="actif">🟢 Actif</SelectItem>
+                  <SelectItem value="en_pause">🟠 En pause</SelectItem>
                   <SelectItem value="termine">⚪ Terminé</SelectItem>
                 </SelectContent>
               </Select>

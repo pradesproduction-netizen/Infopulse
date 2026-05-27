@@ -25,7 +25,7 @@ export function NewClientButton() {
     email: '',
     phone: '',
     company: '',
-    status: 'onboarding' as 'onboarding' | 'actif' | 'termine',
+    status: 'onboarding' as 'onboarding' | 'actif' | 'termine' | 'en_pause',
     start_date: new Date().toISOString().split('T')[0],
     program_id: '',
     total_amount: '',
@@ -149,11 +149,12 @@ export function NewClientButton() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>
-              <Select value={formData.status} onValueChange={(v: 'onboarding' | 'actif' | 'termine') => setFormData({ ...formData, status: v })}>
+              <Select value={formData.status} onValueChange={(v: 'onboarding' | 'actif' | 'termine' | 'en_pause') => setFormData({ ...formData, status: v })}>
                 <SelectTrigger id="status" disabled={loading}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="onboarding">🟡 Onboarding</SelectItem>
                   <SelectItem value="actif">🟢 Actif</SelectItem>
+                  <SelectItem value="en_pause">🟠 En pause</SelectItem>
                   <SelectItem value="termine">⚪ Terminé</SelectItem>
                 </SelectContent>
               </Select>

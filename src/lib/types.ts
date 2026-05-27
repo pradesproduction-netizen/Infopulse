@@ -27,7 +27,7 @@ export interface Client {
   phone: string | null
   company: string | null
   client_user_id: string | null
-  status: 'onboarding' | 'actif' | 'termine'
+  status: 'onboarding' | 'actif' | 'termine' | 'en_pause'
   start_date: string | null
   total_amount: number | null
   program_name: string | null
