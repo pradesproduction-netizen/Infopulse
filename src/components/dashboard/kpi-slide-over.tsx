@@ -14,6 +14,8 @@ interface ProspectItem {
   full_name: string
   estimated_value: number | null
   updated_at: string | null
+  email?: string | null
+  client_id?: string | null
 }
 
 interface PaymentItem {
@@ -58,14 +60,29 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
     if (type === 'ca_mois') {
       supabase
         .from('prospects')
-        .select('id, full_name, estimated_value, updated_at')
+        .select('id, full_name, estimated_value, updated_at, email')
         .eq('infopreneur_id', infopreneurId)
         .eq('pipeline_stage', 'Gagné')
         .gte('updated_at', startOfMonth)
         .lt('updated_at', startOfNextMonth)
         .order('estimated_value', { ascending: false })
-        .then(({ data }) => {
-          setProspects((data ?? []) as ProspectItem[])
+        .then(async ({ data }) => {
+          const prospects = (data ?? []) as ProspectItem[]
+          const emails = prospects.map((p) => p.email).filter(Boolean) as string[]
+          if (emails.length > 0) {
+            const { data: clients } = await supabase
+              .from('clients')
+              .select('id, email')
+              .eq('infopreneur_id', infopreneurId)
+              .in('email', emails)
+            const emailToId: Record<string, string> = {}
+            for (const c of clients ?? []) {
+              if (c.email) emailToId[c.email] = c.id
+            }
+            setProspects(prospects.map((p) => ({ ...p, client_id: p.email ? (emailToId[p.email] ?? null) : null })))
+          } else {
+            setProspects(prospects)
+          }
           setLoading(false)
         })
     } else if (type === 'rdv_booke') {
@@ -220,7 +237,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
                       </p>
                     </div>
                     <Link
-                      href="/dashboard/prospects"
+                      href={p.client_id ? `/dashboard/clients/${p.client_id}` : `/dashboard/prospects`}
                       onClick={onClose}
                       className="flex-shrink-0 text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors whitespace-nowrap"
                     >

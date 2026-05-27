@@ -48,6 +48,17 @@ export async function maybeCreateClient(
 
   if (!newClient) return { client_created: false }
 
+  // Auto-create first payment if estimated_value is set
+  if (prospect.estimated_value != null && prospect.estimated_value > 0) {
+    await admin.from('payments').insert({
+      client_id: newClient.id as string,
+      amount: prospect.estimated_value,
+      payment_date: today,
+      status: 'paid',
+      paid_at: null,
+    })
+  }
+
   revalidatePath('/dashboard/clients', 'page')
   return {
     client_created: true,
