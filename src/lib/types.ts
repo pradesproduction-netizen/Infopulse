@@ -102,6 +102,10 @@ export interface TeamMember {
   role: 'closer' | 'setter'
   active: boolean
   created_at: string
+  messages_sent: number | null
+  follow_ups: number | null
+  calls_booked: number | null
+  signed_clients: number | null
 }
 
 export interface Prospect {

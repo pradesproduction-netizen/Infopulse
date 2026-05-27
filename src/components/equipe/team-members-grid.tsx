@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog } from '@/components/ui/alert-dialog'
-import { Pencil, Trash2, Power, Loader2, Users, ArrowRight } from 'lucide-react'
+import { Pencil, Trash2, Power, Loader2, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { TeamMember, Call } from '@/lib/types'
@@ -41,6 +41,10 @@ function EditMemberModal({ member, open, onClose }: EditModalProps) {
     email: member.email,
     phone: member.phone ?? '',
     role: member.role,
+    messages_sent: member.messages_sent != null ? String(member.messages_sent) : '',
+    follow_ups: member.follow_ups != null ? String(member.follow_ups) : '',
+    calls_booked: member.calls_booked != null ? String(member.calls_booked) : '',
+    signed_clients: member.signed_clients != null ? String(member.signed_clients) : '',
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -52,6 +56,10 @@ function EditMemberModal({ member, open, onClose }: EditModalProps) {
       email: form.email.trim(),
       phone: form.phone.trim() || null,
       role: form.role,
+      messages_sent: form.messages_sent !== '' ? parseInt(form.messages_sent) : null,
+      follow_ups: form.follow_ups !== '' ? parseInt(form.follow_ups) : null,
+      calls_booked: form.calls_booked !== '' ? parseInt(form.calls_booked) : null,
+      signed_clients: form.signed_clients !== '' ? parseInt(form.signed_clients) : null,
     }).eq('id', member.id)
     setLoading(false)
     onClose()
@@ -85,6 +93,37 @@ function EditMemberModal({ member, open, onClose }: EditModalProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {form.role === 'setter' && (
+            <div className="space-y-3 pt-1 border-t border-white/10">
+              <p className="text-xs text-muted-foreground font-medium pt-1">Stats Setter (ce mois)</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit_messages_sent" className="text-xs">Messages</Label>
+                  <Input id="edit_messages_sent" type="number" min="0" value={form.messages_sent} onChange={(e) => setForm((f) => ({ ...f, messages_sent: e.target.value }))} disabled={loading} placeholder="0" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit_follow_ups" className="text-xs">Follow-ups</Label>
+                  <Input id="edit_follow_ups" type="number" min="0" value={form.follow_ups} onChange={(e) => setForm((f) => ({ ...f, follow_ups: e.target.value }))} disabled={loading} placeholder="0" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit_calls_booked" className="text-xs">Calls bookés</Label>
+                  <Input id="edit_calls_booked" type="number" min="0" value={form.calls_booked} onChange={(e) => setForm((f) => ({ ...f, calls_booked: e.target.value }))} disabled={loading} placeholder="0" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {form.role === 'closer' && (
+            <div className="space-y-3 pt-1 border-t border-white/10">
+              <p className="text-xs text-muted-foreground font-medium pt-1">Stats Closer (ce mois)</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_signed_clients" className="text-xs">Clients signés</Label>
+                <Input id="edit_signed_clients" type="number" min="0" value={form.signed_clients} onChange={(e) => setForm((f) => ({ ...f, signed_clients: e.target.value }))} disabled={loading} placeholder="0" />
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Annuler</Button>
             <Button type="submit" disabled={loading}>
@@ -133,6 +172,18 @@ function MemberCard({ member, calls }: MemberCardProps) {
     if (res.ok) router.refresh()
   }
 
+  const kpis = member.role === 'setter'
+    ? [
+        { label: 'Messages', value: member.messages_sent ?? 0 },
+        { label: 'Follow-ups', value: member.follow_ups ?? 0 },
+        { label: 'Calls bookés', value: member.calls_booked ?? 0 },
+      ]
+    : [
+        { label: 'Appels', value: thisMonthCalls.length },
+        { label: 'Show-up', value: `${showUpRate}%` },
+        { label: 'Signés', value: member.signed_clients ?? 0 },
+      ]
+
   return (
     <>
       <Card className={cn('border-white/10 bg-card/50 transition-opacity', !member.active && 'opacity-60')}>
@@ -170,18 +221,12 @@ function MemberCard({ member, calls }: MemberCardProps) {
           </div>
 
           <div className="grid grid-cols-3 gap-2 text-center mb-3">
-            <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-base font-bold">{thisMonthCalls.length}</p>
-              <p className="text-xs text-muted-foreground">Appels</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-base font-bold">{showUpRate}%</p>
-              <p className="text-xs text-muted-foreground">Show-up</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-base font-bold">{completed}</p>
-              <p className="text-xs text-muted-foreground">Complétés</p>
-            </div>
+            {kpis.map(({ label, value }) => (
+              <div key={label} className="bg-white/5 rounded-lg p-2">
+                <p className="text-base font-bold">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            ))}
           </div>
 
           <Link
@@ -209,19 +254,47 @@ function MemberCard({ member, calls }: MemberCardProps) {
 }
 
 export function TeamMembersGrid({ teamMembers, calls }: TeamMembersGridProps) {
-  return (
-    <div>
-      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <Users className="h-5 w-5 text-muted-foreground" />
-        Membres de l&apos;équipe
-      </h2>
-      {teamMembers.length === 0 ? (
+  const setters = teamMembers.filter((m) => m.role === 'setter')
+  const closers = teamMembers.filter((m) => m.role === 'closer')
+
+  if (teamMembers.length === 0) {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Membres de l&apos;équipe</h2>
         <p className="text-sm text-muted-foreground text-center py-8">Aucun membre pour l&apos;instant.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 [&>*]:min-w-0">
-          {teamMembers.map((member) => (
-            <MemberCard key={member.id} member={member} calls={calls} />
-          ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      {setters.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-2 w-2 rounded-full bg-blue-500" />
+            <h2 className="text-base font-semibold">Setters</h2>
+            <span className="text-xs text-muted-foreground">{setters.length} membre{setters.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {setters.map((member) => (
+              <MemberCard key={member.id} member={member} calls={calls} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {closers.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-2 w-2 rounded-full bg-violet-500" />
+            <h2 className="text-base font-semibold">Closers</h2>
+            <span className="text-xs text-muted-foreground">{closers.length} membre{closers.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {closers.map((member) => (
+              <MemberCard key={member.id} member={member} calls={calls} />
+            ))}
+          </div>
         </div>
       )}
     </div>
