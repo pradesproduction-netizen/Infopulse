@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface DeleteClientButtonProps {
   clientId: string
@@ -14,16 +14,21 @@ interface DeleteClientButtonProps {
 
 export function DeleteClientButton({ clientId, clientName }: DeleteClientButtonProps) {
   const router = useRouter()
-  const supabase = createClient()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleDelete = async () => {
     setLoading(true)
-    await supabase.from('clients').delete().eq('id', clientId)
+    const res = await fetch(`/api/delete-client/${clientId}`, { method: 'DELETE' })
     setLoading(false)
     setOpen(false)
-    router.push('/dashboard/clients')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.prospect_deleted) {
+        toast.success(`${data.prospect_name} supprimé de la pipeline`, { duration: 4000 })
+      }
+      router.push('/dashboard/clients')
+    }
   }
 
   return (
