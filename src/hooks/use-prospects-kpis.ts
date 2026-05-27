@@ -50,9 +50,9 @@ export function useProspectsKpis(infopreneurId: string): ProspectsKpis {
 
     const channel = supabase
       .channel(`kpis-${infopreneurId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'prospects', filter: `infopreneur_id=eq.${infopreneurId}` }, () => { void refetch() })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prospects' }, () => { void refetch() })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prospects' }, () => { void refetch() })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'prospects' }, () => { void refetch() })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
