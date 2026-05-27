@@ -114,18 +114,34 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     if (!member) return Response.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
-  // If prospect was 'Gagné' and has an email, cascade-delete the matching client
+  // If prospect was 'Gagné', cascade-delete the matching client (email first, full_name fallback)
   let client_deleted = false
   let client_name: string | undefined
-  if (prospect.pipeline_stage === 'Gagné' && prospect.email) {
-    const { data: existingClient } = await admin
-      .from('clients')
-      .select('id, full_name')
-      .eq('infopreneur_id', prospect.infopreneur_id)
-      .eq('email', prospect.email)
-      .maybeSingle()
+  if (prospect.pipeline_stage === 'Gagné') {
+    let existingClient: { id: string; full_name: string } | null = null
+
+    if (prospect.email) {
+      const { data } = await admin
+        .from('clients')
+        .select('id, full_name')
+        .eq('infopreneur_id', prospect.infopreneur_id)
+        .eq('email', prospect.email)
+        .maybeSingle()
+      existingClient = data
+    }
+
+    if (!existingClient) {
+      const { data } = await admin
+        .from('clients')
+        .select('id, full_name')
+        .eq('infopreneur_id', prospect.infopreneur_id)
+        .eq('full_name', prospect.full_name)
+        .maybeSingle()
+      existingClient = data
+    }
 
     if (existingClient) {
+      await admin.from('payments').delete().eq('client_id', existingClient.id)
       await admin.from('clients').delete().eq('id', existingClient.id)
       client_deleted = true
       client_name = existingClient.full_name as string

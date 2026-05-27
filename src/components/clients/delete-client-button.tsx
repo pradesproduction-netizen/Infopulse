@@ -22,15 +22,20 @@ export function DeleteClientButton({ clientId, clientName }: DeleteClientButtonP
     const res = await fetch(`/api/delete-client/${clientId}`, { method: 'DELETE' })
     setLoading(false)
     setOpen(false)
-    if (res.ok) {
-      const data = await res.json()
-      const name = (data.client_name as string | undefined) ?? clientName
-      const message = data.prospect_deleted
-        ? `${name} supprimé des clients et de la pipeline`
-        : `${name} supprimé des clients`
-      toast.success(message, { duration: 4000 })
-      router.push('/dashboard/clients')
+
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      toast.error((data as { error?: string }).error ?? 'Erreur lors de la suppression')
+      return
     }
+
+    const name = (data.client_name as string | undefined) ?? clientName
+    const message = data.prospect_deleted
+      ? `${name} supprimé des clients et de la pipeline`
+      : `${name} supprimé des clients`
+    toast.success(message, { duration: 4000 })
+    router.push('/dashboard/clients')
   }
 
   return (

@@ -18,7 +18,11 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .single()
 
   if (!client) return Response.json({ error: 'Client introuvable' }, { status: 404 })
-  if (client.infopreneur_id !== user.id) return Response.json({ error: 'Non autorisé' }, { status: 403 })
+  // Compare as strings to avoid type coercion issues
+  if (String(client.infopreneur_id) !== String(user.id)) {
+    console.error('[delete-client] Auth mismatch:', client.infopreneur_id, 'vs', user.id)
+    return Response.json({ error: 'Non autorisé' }, { status: 403 })
+  }
 
   // Find matching prospect: Gagné + same email (primary), fallback to same full_name
   let prospect: { id: string; full_name: string } | null = null
