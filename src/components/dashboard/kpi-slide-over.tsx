@@ -26,7 +26,7 @@ interface PaymentItem {
 const TITLES: Record<PanelType, string> = {
   ca_mois:   'CA du mois — Prospects gagnés',
   rdv_booke: 'Appels prévus — RDV bookés',
-  paiements: 'Paiements à venir ce mois',
+  paiements: 'Paiements à venir — En attente ce mois',
 }
 
 interface KpiSlideOverProps {
@@ -94,7 +94,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
             .from('payments')
             .select('amount, payment_date, status, client:clients(id, full_name)')
             .in('client_id', clientIds)
-            .in('status', ['pending', 'a_relancer'])
+            .eq('status', 'pending')
             .gte('payment_date', startOfMonthDate)
             .lte('payment_date', endOfMonthDate)
             .order('payment_date')

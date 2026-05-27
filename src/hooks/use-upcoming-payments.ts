@@ -31,7 +31,7 @@ export function useUpcomingPayments(infopreneurId: string): number {
         .from('payments')
         .select('amount')
         .in('client_id', clientIds)
-        .in('status', ['pending', 'a_relancer'])
+        .eq('status', 'pending')
         .gte('payment_date', startOfMonth)
         .lte('payment_date', endOfMonth)
 

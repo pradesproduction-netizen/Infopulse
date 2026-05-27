@@ -17,7 +17,7 @@ function getUpcomingPaymentsSub(): string {
   const monthLabel = raw.charAt(0).toUpperCase() + raw.slice(1)
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const daysLeft = lastDayOfMonth - now.getDate()
-  return `${monthLabel} · ${daysLeft} jour${daysLeft !== 1 ? 's' : ''} restant${daysLeft !== 1 ? 's' : ''}`
+  return `${monthLabel} · ${daysLeft} jour${daysLeft !== 1 ? 's' : ''} restant${daysLeft !== 1 ? 's' : ''} · En attente`
 }
 
 function StatCard({
