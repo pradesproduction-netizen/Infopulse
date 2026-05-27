@@ -78,12 +78,17 @@ export function ClientHeader({ client, totalAmount, progressionPct, programName 
   const subtitle = [programName, sinceLabel].filter(Boolean).join(' · ')
 
   async function handleStatusChange(next: Client['status']) {
+    const prev = status
     setStatusLoading(true)
     setStatus(next)
     const supabase = createClient()
-    await supabase.from('clients').update({ status: next }).eq('id', client.id)
+    const { error } = await supabase.from('clients').update({ status: next }).eq('id', client.id)
+    if (error) {
+      console.error('[ClientHeader] status update failed:', error.message)
+      setStatus(prev)
+    }
     setStatusLoading(false)
-    router.refresh()
+    if (!error) router.refresh()
   }
 
   return (
