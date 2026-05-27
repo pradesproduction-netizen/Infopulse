@@ -31,13 +31,11 @@ export default async function ClientsPage({
 
   if (isOverdueFilter && allClients.length > 0) {
     const clientIds = allClients.map((c) => c.id)
-    const today = new Date().toISOString().split('T')[0]
     const { data: overduePayments } = await supabase
       .from('payments')
       .select('client_id, amount')
       .in('client_id', clientIds)
-      .neq('status', 'paid')
-      .lt('payment_date', today)
+      .eq('status', 'a_relancer')
 
     for (const p of overduePayments ?? []) {
       overdueAmounts[p.client_id] = (overdueAmounts[p.client_id] ?? 0) + Number(p.amount)

@@ -53,7 +53,7 @@ export interface Payment {
   client_id: string
   amount: number
   payment_date: string
-  status: 'paid' | 'pending' | 'overdue'
+  status: 'paid' | 'pending' | 'overdue' | 'a_relancer' | 'en_pause'
   paid_at: string | null
   receipt_url: string | null
   notes: string | null

@@ -1,6 +1,7 @@
 'use client'
 
 import { useProspectsKpis } from '@/hooks/use-prospects-kpis'
+import { usePaymentAlerts } from '@/hooks/use-payment-alerts'
 import { WeeklyRecap } from '@/components/dashboard/weekly-recap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
@@ -54,6 +55,7 @@ export function DashboardProspectsWidget({
   children,
 }: DashboardProspectsWidgetProps) {
   const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId)
+  const alertCount = usePaymentAlerts(infopreneurId)
 
   return (
     <div className="space-y-6">
@@ -79,11 +81,11 @@ export function DashboardProspectsWidget({
           icon={TrendingUp}
           iconBg="bg-green-500"
         />
-        {overdueCount > 0 ? (
+        {alertCount > 0 ? (
           <Link href="/dashboard/clients?filtre=retard" className="block group">
             <StatCard
               title="Relances paiement"
-              value={String(overdueCount)}
+              value={String(alertCount)}
               sub="Voir les clients concernés →"
               icon={Bell}
               iconBg="bg-red-500"

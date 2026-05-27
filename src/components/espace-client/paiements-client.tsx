@@ -1,5 +1,6 @@
 'use client'
 
+import type React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,12 @@ interface PaiementsClientProps {
   client: Client
 }
 
-const statusConfig = {
+const statusConfig: Record<string, {
+  label: string
+  icon: React.ElementType
+  badgeClass: string
+  iconClass: string
+}> = {
   paid: {
     label: 'Payé',
     icon: CheckCircle2,
@@ -30,6 +36,18 @@ const statusConfig = {
     icon: AlertCircle,
     badgeClass: 'bg-red-500/10 text-red-300 border-red-500/30',
     iconClass: 'text-red-400',
+  },
+  a_relancer: {
+    label: 'À relancer',
+    icon: AlertCircle,
+    badgeClass: 'bg-red-500/10 text-red-300 border-red-500/30',
+    iconClass: 'text-red-400',
+  },
+  en_pause: {
+    label: 'En pause',
+    icon: Clock,
+    badgeClass: 'bg-gray-500/10 text-gray-300 border-gray-500/30',
+    iconClass: 'text-gray-400',
   },
 }
 

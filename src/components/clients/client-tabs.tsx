@@ -28,8 +28,7 @@ export function ClientTabs({
   clientPrograms,
   availablePrograms,
 }: ClientTabsProps) {
-  const today = new Date().toISOString().split('T')[0]
-  const hasOverdue = payments.some((p) => p.status !== 'paid' && p.payment_date < today)
+  const hasOverdue = payments.some((p) => p.status === 'a_relancer')
 
   return (
     <Tabs defaultValue="overview" className="flex-col">

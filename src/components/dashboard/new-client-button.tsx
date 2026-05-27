@@ -65,23 +65,38 @@ export function NewClientButton() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Tu dois être connectée'); setLoading(false); return }
 
-    const { error: insertError } = await supabase.from('clients').insert({
-      infopreneur_id: user.id,
-      full_name: formData.full_name,
-      email: formData.email,
-      phone: formData.phone || null,
-      company: formData.company || null,
-      status: formData.status,
-      start_date: formData.start_date || null,
-      program_name: selectedProgram?.name ?? null,
-      total_amount: formData.total_amount ? parseFloat(formData.total_amount) : null,
-      notes: formData.notes || null,
-    })
+    const { data: newClient, error: insertError } = await supabase
+      .from('clients')
+      .insert({
+        infopreneur_id: user.id,
+        full_name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone || null,
+        company: formData.company || null,
+        status: formData.status,
+        start_date: formData.start_date || null,
+        program_name: selectedProgram?.name ?? null,
+        total_amount: formData.total_amount ? parseFloat(formData.total_amount) : null,
+        notes: formData.notes || null,
+      })
+      .select('id')
+      .single()
 
     if (insertError) {
       setError(insertError.message)
       setLoading(false)
     } else {
+      // Création automatique du premier paiement
+      if (newClient && formData.total_amount && formData.start_date) {
+        await supabase.from('payments').insert({
+          client_id: newClient.id,
+          amount: parseFloat(formData.total_amount),
+          payment_date: formData.start_date,
+          status: 'pending',
+          paid_at: null,
+        })
+      }
+
       setFormData({
         full_name: '', email: '', phone: '', company: '',
         status: 'onboarding', start_date: new Date().toISOString().split('T')[0],
@@ -144,8 +159,8 @@ export function NewClientButton() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="start_date">Date de début</Label>
-              <Input id="start_date" type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} disabled={loading} />
+              <Label htmlFor="start_date">Date de début <span className="text-red-400">*</span></Label>
+              <Input id="start_date" type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} required disabled={loading} />
             </div>
           </div>
 
@@ -172,8 +187,8 @@ export function NewClientButton() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="total_amount">Montant total (€)</Label>
-              <Input id="total_amount" type="number" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })} disabled={loading} placeholder="3000" />
+              <Label htmlFor="total_amount">Montant total (€) <span className="text-red-400">*</span></Label>
+              <Input id="total_amount" type="number" step="0.01" min="0" value={formData.total_amount} onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })} required disabled={loading} placeholder="3000" />
             </div>
           </div>
 
