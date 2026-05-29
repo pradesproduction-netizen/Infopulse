@@ -66,7 +66,7 @@ export async function maybeCreateClient(
     await admin.from('prospects').update({ client_id: newClient.id as string }).eq('id', prospect.prospectId)
   }
 
-  // Auto-create first pending payment if estimated_value is set
+  // Auto-create first payment (paid) if estimated_value is set
   if (prospect.estimated_value != null && prospect.estimated_value > 0) {
     await admin.from('payments').insert({
       client_id: newClient.id as string,
@@ -74,7 +74,8 @@ export async function maybeCreateClient(
       amount: prospect.estimated_value,
       payment_date: today,
       next_payment_date: nextPaymentDate,
-      status: 'pending',
+      status: 'paid',
+      paid_at: today,
     })
   }
 
