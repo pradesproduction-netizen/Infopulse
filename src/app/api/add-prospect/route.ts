@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     team_member_id: team_member_id || null,
   }
 
-  const { error } = await supabase.from('prospects').insert(row)
+  const { data: inserted, error } = await supabase.from('prospects').insert(row).select('id').single()
 
   if (error) {
     console.error('[add-prospect] INSERT error:', error.message)
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
         phone: row.phone,
         estimated_value: row.estimated_value,
         infopreneur_id: user.id,
+        prospectId: inserted?.id ?? null,
       },
       admin
     )

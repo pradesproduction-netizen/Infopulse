@@ -16,11 +16,12 @@ import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { TrendingUp, ChevronLeft, ChevronRight, Trash2, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { AddProspectModal } from './add-prospect-modal'
 import { EditProspectModal } from './edit-prospect-modal'
+import Link from 'next/link'
 import type { Prospect } from '@/lib/types'
 
 interface ProspectsPipelineProps {
@@ -126,6 +127,26 @@ function ProspectCardContent({ prospect, badgeClass }: { prospect: Prospect; bad
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Client actif badge + link — only in Gagné column */}
+      {prospect.client_id && prospect.pipeline_stage === 'Gagné' && (
+        <div
+          className="mt-2 flex items-center gap-1.5"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <Badge className="bg-green-500/15 text-green-300 border-green-500/30 text-[10px] px-1.5 py-0">
+            Client actif
+          </Badge>
+          <Link
+            href={`/dashboard/clients/${prospect.client_id}`}
+            className="flex items-center gap-0.5 text-[10px] text-violet-400 hover:text-violet-300 transition-colors"
+          >
+            Voir le profil
+            <ExternalLink className="h-2.5 w-2.5" />
+          </Link>
         </div>
       )}
     </CardContent>

@@ -197,7 +197,7 @@ export function ClientHeader({ client, totalAmount, progressionPct, programName 
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <DeleteClientButton clientId={client.id} clientName={client.full_name} clientEmail={client.email} />
+            <DeleteClientButton clientId={client.id} clientName={client.full_name} />
           </div>
         </div>
       </div>

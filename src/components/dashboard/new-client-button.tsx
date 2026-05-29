@@ -86,7 +86,7 @@ export function NewClientButton() {
       setError(insertError.message)
       setLoading(false)
     } else {
-      // Création automatique du premier paiement
+      // First payment
       if (newClient && formData.total_amount && formData.start_date) {
         await supabase.from('payments').insert({
           client_id: newClient.id,
@@ -95,6 +95,22 @@ export function NewClientButton() {
           status: 'paid',
           paid_at: null,
         })
+      }
+
+      // Link matching prospect: if a prospect with the same email exists, move it to Gagné and set client_id
+      if (newClient && formData.email) {
+        const { data: matchingProspect } = await supabase
+          .from('prospects')
+          .select('id')
+          .eq('email', formData.email)
+          .maybeSingle()
+
+        if (matchingProspect) {
+          await supabase
+            .from('prospects')
+            .update({ pipeline_stage: 'Gagné', client_id: newClient.id })
+            .eq('id', matchingProspect.id)
+        }
       }
 
       setFormData({

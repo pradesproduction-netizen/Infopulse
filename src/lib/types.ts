@@ -118,6 +118,7 @@ export interface Prospect {
   estimated_value: number | null
   pipeline_stage: 'Nouveau lead' | 'Set en cours' | 'RDV booké' | 'No show' | 'Proposition envoyée' | 'Follow-up' | 'Gagné' | 'Perdu'
   team_member_id: string | null
+  client_id: string | null
   instagram_url: string | null
   linkedin_url: string | null
   notes: string | null

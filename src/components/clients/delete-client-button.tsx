@@ -11,10 +11,9 @@ import { toast } from 'sonner'
 interface DeleteClientButtonProps {
   clientId: string
   clientName: string
-  clientEmail?: string | null
 }
 
-export function DeleteClientButton({ clientId, clientName, clientEmail }: DeleteClientButtonProps) {
+export function DeleteClientButton({ clientId, clientName }: DeleteClientButtonProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -23,16 +22,10 @@ export function DeleteClientButton({ clientId, clientName, clientEmail }: Delete
     setLoading(true)
     const supabase = createClient()
 
-    // 1. Supprimer le prospect "Gagné" correspondant
-    const orFilter = clientEmail
-      ? `email.eq.${clientEmail},full_name.eq.${clientName}`
-      : `full_name.eq.${clientName}`
-    await supabase.from('prospects').delete().eq('pipeline_stage', 'Gagné').or(orFilter)
-
-    // 2. Supprimer les payments du client
+    // 1. Delete payments first so realtime payment channels fire
     await supabase.from('payments').delete().eq('client_id', clientId)
 
-    // 3. Supprimer le client
+    // 2. Delete client — ON DELETE CASCADE automatically removes the linked prospect
     const { error } = await supabase.from('clients').delete().eq('id', clientId)
 
     setLoading(false)

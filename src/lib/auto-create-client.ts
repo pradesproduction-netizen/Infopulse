@@ -14,6 +14,7 @@ export async function maybeCreateClient(
     phone: string | null | undefined
     estimated_value: number | null | undefined
     infopreneur_id: string
+    prospectId?: string | null
   },
   admin: ReturnType<typeof createAdminClient>
 ): Promise<ClientCreationResult> {
@@ -47,6 +48,11 @@ export async function maybeCreateClient(
     .single()
 
   if (!newClient) return { client_created: false }
+
+  // Link the prospect to the newly created client
+  if (prospect.prospectId) {
+    await admin.from('prospects').update({ client_id: newClient.id as string }).eq('id', prospect.prospectId)
+  }
 
   // Auto-create first payment if estimated_value is set
   if (prospect.estimated_value != null && prospect.estimated_value > 0) {
