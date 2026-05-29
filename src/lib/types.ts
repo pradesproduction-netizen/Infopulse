@@ -51,8 +51,10 @@ export interface CoachingStep {
 export interface Payment {
   id: string
   client_id: string
+  infopreneur_id?: string | null
   amount: number
   payment_date: string
+  next_payment_date?: string | null
   status: 'paid' | 'pending' | 'overdue' | 'a_relancer' | 'en_pause'
   paid_at: string | null
   receipt_url: string | null

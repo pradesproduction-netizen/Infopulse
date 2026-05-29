@@ -94,9 +94,9 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
 
     if (res.ok) {
       const data = await res.json()
-      if (data.client_created) {
-        const clientId = data.client_id as string
-        toast.success(`${data.client_name} ajouté automatiquement dans Clients`, {
+      const clientId = data.client_id as string | undefined
+      if (clientId) {
+        toast.success(`${data.client_name ?? ''} ajouté automatiquement dans Clients`, {
           action: {
             label: 'Voir le profil →',
             onClick: () => { window.location.href = `/dashboard/clients/${clientId}` },

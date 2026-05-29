@@ -25,14 +25,26 @@ export async function maybeCreateClient(
 
   const { data: existing } = await admin
     .from('clients')
-    .select('id')
+    .select('id, full_name')
     .eq('infopreneur_id', prospect.infopreneur_id)
     .eq('email', prospect.email)
     .maybeSingle()
 
-  if (existing) return { client_created: false }
+  // Client already exists (e.g. created by DB trigger) — return its id so callers
+  // can still revalidate and show toasts without creating a duplicate.
+  if (existing) {
+    return {
+      client_created: false,
+      client_id: existing.id as string,
+      client_name: existing.full_name as string,
+    }
+  }
 
   const today = new Date().toISOString().split('T')[0]
+  const nextMonth = new Date()
+  nextMonth.setMonth(nextMonth.getMonth() + 1)
+  const nextPaymentDate = nextMonth.toISOString().split('T')[0]
+
   const { data: newClient } = await admin
     .from('clients')
     .insert({
@@ -54,14 +66,15 @@ export async function maybeCreateClient(
     await admin.from('prospects').update({ client_id: newClient.id as string }).eq('id', prospect.prospectId)
   }
 
-  // Auto-create first payment if estimated_value is set
+  // Auto-create first pending payment if estimated_value is set
   if (prospect.estimated_value != null && prospect.estimated_value > 0) {
     await admin.from('payments').insert({
       client_id: newClient.id as string,
+      infopreneur_id: prospect.infopreneur_id,
       amount: prospect.estimated_value,
       payment_date: today,
-      status: 'paid',
-      paid_at: null,
+      next_payment_date: nextPaymentDate,
+      status: 'pending',
     })
   }
 

@@ -298,9 +298,9 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
       if (!res.ok) { router.refresh(); return }
       if (newStage === 'Gagné') {
         const data = await res.json()
-        if (data.client_created) {
-          const clientId = data.client_id as string
-          toast.success(`${data.client_name} ajouté automatiquement dans Clients`, {
+        const clientId = data.client_id as string | undefined
+        if (clientId) {
+          toast.success(`${data.client_name ?? ''} ajouté automatiquement dans Clients`, {
             action: {
               label: 'Voir le profil →',
               onClick: () => router.push(`/dashboard/clients/${clientId}`),

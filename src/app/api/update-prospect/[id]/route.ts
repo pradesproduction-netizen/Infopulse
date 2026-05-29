@@ -44,7 +44,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     let clientResult: ClientCreationResult = { client_created: false }
     if (becomingGagne) {
       clientResult = await maybeCreateClient({ ...(data as Parameters<typeof maybeCreateClient>[0]), prospectId: id }, admin)
-      if (clientResult.client_created) revalidatePath('/dashboard/clients', 'page')
+      if (clientResult.client_id) revalidatePath('/dashboard/clients', 'page')
     }
 
     return Response.json({ success: true, prospect: data, ...clientResult })

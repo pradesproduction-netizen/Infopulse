@@ -52,7 +52,7 @@ export function PaymentsTab({ payments, clientId }: PaymentsTabProps) {
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
     const toUpgrade = payments.filter(
-      (p) => p.status === 'pending' && p.payment_date === today
+      (p) => p.status === 'pending' && p.payment_date < today
     )
     if (toUpgrade.length === 0) return
     const supabase = createClient()
