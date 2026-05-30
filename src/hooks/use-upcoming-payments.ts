@@ -3,8 +3,13 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-export function useUpcomingPayments(infopreneurId: string): number {
-  const [total, setTotal] = useState(0)
+interface UpcomingPaymentsResult {
+  total: number
+  count: number
+}
+
+export function useUpcomingPayments(infopreneurId: string): UpcomingPaymentsResult {
+  const [result, setResult] = useState<UpcomingPaymentsResult>({ total: 0, count: 0 })
 
   useEffect(() => {
     const supabase = createClient()
@@ -16,26 +21,19 @@ export function useUpcomingPayments(infopreneurId: string): number {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         .toISOString().split('T')[0]
 
-      const { data: clients } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('infopreneur_id', infopreneurId)
-
-      const clientIds = (clients ?? []).map((c: { id: string }) => c.id)
-      if (clientIds.length === 0) {
-        setTotal(0)
-        return
-      }
-
       const { data: payments } = await supabase
         .from('payments')
         .select('amount')
-        .in('client_id', clientIds)
+        .eq('infopreneur_id', infopreneurId)
         .eq('status', 'pending')
-        .gte('payment_date', startOfMonth)
-        .lte('payment_date', endOfMonth)
+        .gte('next_payment_date', startOfMonth)
+        .lte('next_payment_date', endOfMonth)
 
-      setTotal((payments ?? []).reduce((s, p) => s + Number(p.amount), 0))
+      const list = payments ?? []
+      setResult({
+        total: list.reduce((s, p) => s + Number(p.amount), 0),
+        count: list.length,
+      })
     }
 
     fetchTotal()
@@ -50,5 +48,5 @@ export function useUpcomingPayments(infopreneurId: string): number {
     return () => { supabase.removeChannel(channel) }
   }, [infopreneurId])
 
-  return total
+  return result
 }

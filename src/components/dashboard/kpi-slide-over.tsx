@@ -21,9 +21,8 @@ interface ProspectItem {
 
 interface PaymentItem {
   amount: number
-  payment_date: string
-  status: string
-  client: { id: string; full_name: string }
+  next_payment_date: string
+  client: { id: string; full_name: string } | null
 }
 
 interface RelanceItem {
@@ -37,7 +36,7 @@ const TITLES: Record<PanelType, string> = {
   ca_mois:   'CA du mois — Prospects gagnés',
   rdv_booke: 'Appels prévus — RDV bookés',
   paiements: 'Paiements à venir — En attente ce mois',
-  relances:  '💸 Relances paiement',
+  relances:  'Relances paiement',
 }
 
 interface KpiSlideOverProps {
@@ -123,27 +122,16 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
           setLoading(false)
         })
     } else {
-      // paiements (pending ce mois)
+      // paiements pending ce mois (par next_payment_date)
       supabase
-        .from('clients')
-        .select('id')
+        .from('payments')
+        .select('amount, next_payment_date, client:clients(id, full_name)')
         .eq('infopreneur_id', infopreneurId)
-        .then(async ({ data: clients }) => {
-          const clientIds = (clients ?? []).map((c: { id: string }) => c.id)
-          if (clientIds.length === 0) {
-            setPayments([])
-            setLoading(false)
-            return
-          }
-          const { data } = await supabase
-            .from('payments')
-            .select('amount, payment_date, status, client:clients(id, full_name)')
-            .in('client_id', clientIds)
-            .eq('status', 'pending')
-            .gte('payment_date', startOfMonthDate)
-            .lte('payment_date', endOfMonthDate)
-            .order('payment_date')
-
+        .eq('status', 'pending')
+        .gte('next_payment_date', startOfMonthDate)
+        .lte('next_payment_date', endOfMonthDate)
+        .order('next_payment_date', { ascending: true })
+        .then(({ data }) => {
           setPayments((data ?? []) as unknown as PaymentItem[])
           setLoading(false)
         })
@@ -294,6 +282,18 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
                           Payé
                         </button>
                       </div>
+
+                      {/* Lien profil */}
+                      {r.client?.id && (
+                        <Link
+                          href={`/dashboard/clients/${r.client.id}`}
+                          onClick={onClose}
+                          className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                        >
+                          <ArrowRight className="h-3 w-3" />
+                          Voir le profil
+                        </Link>
+                      )}
                     </li>
                   )
                 })}
@@ -302,7 +302,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
           ) : type === 'paiements' ? (
             payments.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-16">
-                Aucun paiement à venir ce mois-ci.
+                Aucun paiement en attente ce mois-ci.
               </p>
             ) : (
               <ul className="space-y-2">
@@ -316,18 +316,20 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {Number(p.amount).toLocaleString('fr-FR')} €
                         {' · '}
-                        {new Date(p.payment_date + 'T00:00:00').toLocaleDateString('fr-FR', {
+                        {new Date(p.next_payment_date + 'T00:00:00').toLocaleDateString('fr-FR', {
                           day: 'numeric', month: 'long',
                         })}
                       </p>
                     </div>
-                    <Link
-                      href={`/dashboard/clients/${p.client?.id}`}
-                      onClick={onClose}
-                      className="flex-shrink-0 text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors whitespace-nowrap"
-                    >
-                      Voir le profil <ArrowRight className="h-3 w-3" />
-                    </Link>
+                    {p.client?.id && (
+                      <Link
+                        href={`/dashboard/clients/${p.client.id}`}
+                        onClick={onClose}
+                        className="flex-shrink-0 text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors whitespace-nowrap"
+                      >
+                        → Voir le profil <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

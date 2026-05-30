@@ -32,12 +32,16 @@ export default async function DashboardPage() {
   const mondayStr = monday.toISOString().split('T')[0]
   const sundayStr = sunday.toISOString().split('T')[0]
 
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+
   const [
     { data: tasks },
     { data: clients },
     { data: prospects },
     { data: objective },
     { data: paymentsToChaseRaw },
+    { data: upcomingPayments },
   ] = await Promise.all([
     supabase.from('daily_tasks').select('*')
       .eq('infopreneur_id', user.id)
@@ -56,6 +60,13 @@ export default async function DashboardPage() {
       .eq('infopreneur_id', user.id)
       .lte('next_payment_date', today)
       .neq('status', 'paid')
+      .order('next_payment_date', { ascending: true }),
+    supabase.from('payments')
+      .select('id, amount, next_payment_date, clients(id, full_name)')
+      .eq('infopreneur_id', user.id)
+      .eq('status', 'pending')
+      .gte('next_payment_date', monthStart)
+      .lte('next_payment_date', monthEnd)
       .order('next_payment_date', { ascending: true }),
   ])
 

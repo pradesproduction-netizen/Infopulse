@@ -10,14 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Euro, Phone, TrendingUp, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-function getUpcomingPaymentsSub(): string {
-  const now = new Date()
-  const raw = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-  const monthLabel = raw.charAt(0).toUpperCase() + raw.slice(1)
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-  const daysLeft = lastDayOfMonth - now.getDate()
-  return `${monthLabel} · ${daysLeft} jour${daysLeft !== 1 ? 's' : ''} restant${daysLeft !== 1 ? 's' : ''} · En attente`
-}
 
 function StatCard({
   title, value, sub, icon: Icon, iconBg, onClick, danger,
@@ -80,7 +72,7 @@ export function DashboardProspectsWidget({
 }: DashboardProspectsWidgetProps) {
   const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId)
   const alertCount = usePaymentAlerts(infopreneurId)
-  const upcomingTotal = useUpcomingPayments(infopreneurId)
+  const { total: upcomingTotal, count: upcomingCount } = useUpcomingPayments(infopreneurId)
   const [openPanel, setOpenPanel] = useState<PanelType | null>(null)
 
   return (
@@ -106,7 +98,10 @@ export function DashboardProspectsWidget({
           <StatCard
             title="Paiements à venir"
             value={upcomingTotal > 0 ? `${upcomingTotal.toLocaleString('fr-FR')} €` : '— €'}
-            sub={getUpcomingPaymentsSub()}
+            sub={upcomingCount > 0
+              ? `${upcomingCount} paiement${upcomingCount !== 1 ? 's' : ''} ce mois · En attente`
+              : 'Aucun paiement en attente'
+            }
             icon={TrendingUp}
             iconBg="bg-green-500"
             onClick={() => setOpenPanel('paiements')}
