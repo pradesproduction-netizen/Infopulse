@@ -56,5 +56,11 @@ export async function POST(req: NextRequest) {
   // Step 3: link user_id to the team_members record
   await admin.from('team_members').update({ user_id: authUserId }).eq('id', memberId)
 
+  // Step 4: upsert into profiles so role-based redirect works at login
+  await admin.from('profiles').upsert(
+    { id: authUserId, email, full_name: name ?? null, role: 'team_member' },
+    { onConflict: 'id' }
+  )
+
   return NextResponse.json({ success: true, userId: authUserId, tempPassword: TEMP_PASSWORD })
 }

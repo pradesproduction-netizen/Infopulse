@@ -13,27 +13,43 @@ export async function GET(request: Request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (user?.email) {
+      if (user) {
         const admin = createAdminClient()
 
-        const { data: teamMember } = await admin
-          .from('team_members')
-          .select('id')
-          .eq('email', user.email)
+        // 1. Check profiles.role (preferred — set at account creation)
+        const { data: profile } = await admin
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
           .maybeSingle()
 
-        if (teamMember) {
+        if (profile?.role === 'team_member') {
           return NextResponse.redirect(`${origin}/espace-equipe`)
         }
-
-        const { data: client } = await admin
-          .from('clients')
-          .select('id')
-          .eq('email', user.email)
-          .maybeSingle()
-
-        if (client) {
+        if (profile?.role === 'client') {
           return NextResponse.redirect(`${origin}/espace-client`)
+        }
+        if (profile?.role === 'infopreneur') {
+          return NextResponse.redirect(`${origin}/dashboard`)
+        }
+
+        // 2. Fallback: lookup by email in team_members / clients
+        if (user.email) {
+          const { data: teamMember } = await admin
+            .from('team_members')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle()
+
+          if (teamMember) return NextResponse.redirect(`${origin}/espace-equipe`)
+
+          const { data: client } = await admin
+            .from('clients')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle()
+
+          if (client) return NextResponse.redirect(`${origin}/espace-client`)
         }
       }
 

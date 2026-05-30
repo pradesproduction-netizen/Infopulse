@@ -7,6 +7,7 @@ export interface PaymentToChase {
 
 export interface Profile {
   id: string
+  role: 'infopreneur' | 'team_member' | 'client' | null
   full_name: string | null
   email: string | null
   phone: string | null

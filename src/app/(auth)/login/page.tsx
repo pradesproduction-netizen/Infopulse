@@ -23,7 +23,7 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -31,10 +31,30 @@ export default function LoginPage() {
     if (error) {
       setError(error.message)
       setLoading(false)
+      return
+    }
+
+    // Redirect based on role in profiles table
+    const userId = signInData.user?.id
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle()
+
+      const role = profile?.role
+      if (role === 'team_member') {
+        router.push('/espace-equipe')
+      } else if (role === 'client') {
+        router.push('/espace-client')
+      } else {
+        router.push('/dashboard')
+      }
     } else {
       router.push('/dashboard')
-      router.refresh()
     }
+    router.refresh()
   }
 
   return (
