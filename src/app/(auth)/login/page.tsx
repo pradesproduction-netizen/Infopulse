@@ -45,7 +45,7 @@ export default function LoginPage() {
 
       const role = profile?.role
       if (role === 'team_member') {
-        router.push('/espace-equipe')
+        router.push('/espace-equipe/profil')
       } else if (role === 'client') {
         router.push('/espace-client')
       } else {

@@ -24,7 +24,7 @@ export async function GET(request: Request) {
           .maybeSingle()
 
         if (profile?.role === 'team_member') {
-          return NextResponse.redirect(`${origin}/espace-equipe`)
+          return NextResponse.redirect(`${origin}/espace-equipe/profil`)
         }
         if (profile?.role === 'client') {
           return NextResponse.redirect(`${origin}/espace-client`)
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
             .eq('email', user.email)
             .maybeSingle()
 
-          if (teamMember) return NextResponse.redirect(`${origin}/espace-equipe`)
+          if (teamMember) return NextResponse.redirect(`${origin}/espace-equipe/profil`)
 
           const { data: client } = await admin
             .from('clients')
