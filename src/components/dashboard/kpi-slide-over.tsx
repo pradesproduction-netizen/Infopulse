@@ -358,7 +358,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
                         onClick={onClose}
                         className="flex-shrink-0 text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors whitespace-nowrap"
                       >
-                        → Voir le profil <ArrowRight className="h-3 w-3" />
+                        Voir le profil <ArrowRight className="h-3 w-3" />
                       </Link>
                     )}
                   </li>
