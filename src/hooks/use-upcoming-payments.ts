@@ -21,7 +21,11 @@ export function useUpcomingPayments(infopreneurId: string): UpcomingPaymentsResu
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         .toISOString().split('T')[0]
 
-      const { data } = await supabase
+      console.log('infopreneurId:', infopreneurId)
+      console.log('monthStart:', monthStart)
+      console.log('monthEnd:', monthEnd)
+
+      const { data, error } = await supabase
         .from('payments')
         .select('*, clients(full_name, id)')
         .eq('infopreneur_id', infopreneurId)
@@ -29,6 +33,8 @@ export function useUpcomingPayments(infopreneurId: string): UpcomingPaymentsResu
         .gte('next_payment_date', monthStart)
         .lte('next_payment_date', monthEnd)
         .order('next_payment_date', { ascending: true })
+
+      console.log('payments result:', data, error)
 
       const list = data ?? []
       setResult({
