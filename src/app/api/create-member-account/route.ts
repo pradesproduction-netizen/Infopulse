@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const { email, memberId, name } = await req.json()
   if (!email || !memberId) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
 
-  const admin = createAdminClient()
+  const admin = createAdminClient() // uses SUPABASE_SERVICE_ROLE_KEY
 
   // Verify this member belongs to the authenticated infopreneur
   const { data: member } = await admin
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   let authUserId: string | null = null
 
-  // Try to create the auth user
+  // Step 1: create auth user (without user_metadata — causes DB error on this project)
   const { data: createData, error: createError } = await admin.auth.admin.createUser({
     email,
     password: TEMP_PASSWORD,
@@ -47,7 +47,13 @@ export async function POST(req: NextRequest) {
     authUserId = createData.user.id
   }
 
-  // Link user_id to the team member record
+  // Step 2: force email confirmed + set user_metadata via updateUserById
+  await admin.auth.admin.updateUserById(authUserId, {
+    email_confirm: true,
+    user_metadata: { full_name: name ?? '', role: 'team_member' },
+  })
+
+  // Step 3: link user_id to the team_members record
   await admin.from('team_members').update({ user_id: authUserId }).eq('id', memberId)
 
   return NextResponse.json({ success: true, userId: authUserId, tempPassword: TEMP_PASSWORD })
