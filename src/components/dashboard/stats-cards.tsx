@@ -1,4 +1,5 @@
 import type { ElementType } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, TrendingDown, Euro, Phone, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -10,11 +11,15 @@ interface StatCardProps {
   changeType?: 'positive' | 'negative' | 'neutral'
   icon: ElementType
   iconColor: string
+  href?: string
 }
 
-function StatCard({ title, value, change, changeType, icon: Icon, iconColor }: StatCardProps) {
-  return (
-    <Card className="border-white/10 bg-card/50 hover:bg-card/70 transition-colors">
+function StatCard({ title, value, change, changeType, icon: Icon, iconColor, href }: StatCardProps) {
+  const content = (
+    <Card className={cn(
+      'border-white/10 bg-card/50 transition-colors',
+      href ? 'hover:bg-card/70 cursor-pointer' : 'hover:bg-card/70'
+    )}>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -40,6 +45,9 @@ function StatCard({ title, value, change, changeType, icon: Icon, iconColor }: S
       </CardContent>
     </Card>
   )
+
+  if (href) return <Link href={href}>{content}</Link>
+  return content
 }
 
 interface StatsCardsProps {
@@ -79,10 +87,11 @@ export function StatsCards({ caMonth, todayCalls, upcomingPaymentsTotal, overdue
       <StatCard
         title="Alertes critiques"
         value={String(overdueCount)}
-        change={overdueCount > 0 ? 'Clients en retard de paiement' : 'Aucun retard'}
+        change={overdueCount > 0 ? 'Cliquer pour voir les relances' : 'Aucun retard'}
         changeType={overdueCount > 0 ? 'negative' : 'neutral'}
         icon={AlertTriangle}
         iconColor={overdueCount > 0 ? 'bg-red-500' : 'bg-gray-500'}
+        href={overdueCount > 0 ? '#payment-reminders' : undefined}
       />
     </div>
   )

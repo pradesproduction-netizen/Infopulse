@@ -36,8 +36,7 @@ interface SubscriptionSectionProps {
 export function SubscriptionSection({ currentPlan }: SubscriptionSectionProps) {
   const router = useRouter()
   const plan = currentPlan ?? 'free'
-
-  return (
+return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Abonnement</h2>
@@ -121,11 +120,11 @@ export function SubscriptionSection({ currentPlan }: SubscriptionSectionProps) {
               >
                 Passer au Starter
               </Button>
-            ) : (
+            ) : plan === 'pro' ? (
               <Button variant="outline" className="w-full mt-4" disabled>
                 Plan inférieur
               </Button>
-            )}
+            ) : null}
           </CardContent>
         </Card>
 
@@ -206,6 +205,7 @@ export function SubscriptionSection({ currentPlan }: SubscriptionSectionProps) {
           </CardContent>
         </Card>
       </div>
+
     </div>
   )
 }

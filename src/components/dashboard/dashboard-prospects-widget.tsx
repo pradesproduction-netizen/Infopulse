@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useProspectsKpis } from '@/hooks/use-prospects-kpis'
 import { usePaymentAlerts } from '@/hooks/use-payment-alerts'
-import { useUpcomingPayments } from '@/hooks/use-upcoming-payments'
 import { KpiSlideOver, type PanelType } from '@/components/dashboard/kpi-slide-over'
 import { WeeklyRecap } from '@/components/dashboard/weekly-recap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -55,6 +54,8 @@ interface DashboardProspectsWidgetProps {
   showUpRate: number
   showUpRateTarget: number
   weekLabel: string
+  upcomingTotal: number
+  upcomingCount: number
   children?: React.ReactNode
 }
 
@@ -68,11 +69,12 @@ export function DashboardProspectsWidget({
   showUpRate,
   showUpRateTarget,
   weekLabel,
+  upcomingTotal,
+  upcomingCount,
   children,
 }: DashboardProspectsWidgetProps) {
   const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId)
   const alertCount = usePaymentAlerts(infopreneurId)
-  const { total: upcomingTotal, count: upcomingCount } = useUpcomingPayments(infopreneurId)
   const [openPanel, setOpenPanel] = useState<PanelType | null>(null)
 
   return (

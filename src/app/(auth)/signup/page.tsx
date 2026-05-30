@@ -27,10 +27,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-          role: 'infopreneur',
-        },
+        data: { full_name: fullName, role: 'infopreneur' },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
@@ -38,10 +35,18 @@ export default function SignupPage() {
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
-      setSuccess(true)
-      setLoading(false)
+      return
     }
+
+    // Send confirmation email via Resend (Supabase native email disabled)
+    await fetch('/api/auth/send-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, firstName: fullName.split(' ')[0] }),
+    })
+
+    setSuccess(true)
+    setLoading(false)
   }
 
   if (success) {

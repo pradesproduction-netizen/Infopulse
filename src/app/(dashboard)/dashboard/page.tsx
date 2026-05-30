@@ -30,7 +30,6 @@ export default async function DashboardPage() {
   const today = now.toISOString().split('T')[0]
   const { monday, sunday } = getWeekBounds()
   const mondayStr = monday.toISOString().split('T')[0]
-  const sundayStr = sunday.toISOString().split('T')[0]
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
@@ -62,7 +61,7 @@ export default async function DashboardPage() {
       .neq('status', 'paid')
       .order('next_payment_date', { ascending: true }),
     supabase.from('payments')
-      .select('id, amount, next_payment_date, clients(id, full_name)')
+      .select('*, clients(full_name, id)')
       .eq('infopreneur_id', user.id)
       .eq('status', 'pending')
       .gte('next_payment_date', monthStart)
@@ -70,10 +69,16 @@ export default async function DashboardPage() {
       .order('next_payment_date', { ascending: true }),
   ])
 
+  console.log('SERVER upcomingPayments:', upcomingPayments)
+
   const clientIds = clients?.map((c) => c.id) ?? []
   const { data: payments } = clientIds.length > 0
     ? await supabase.from('payments').select('amount, status, payment_date').in('client_id', clientIds)
     : { data: [] as { amount: number; status: string; payment_date: string }[] }
+
+  const upcomingList = upcomingPayments ?? []
+  const upcomingTotal = upcomingList.reduce((s, p) => s + Number(p.amount), 0)
+  const upcomingCount = upcomingList.length
 
   const allPayments = payments ?? []
   const allProspects = (prospects ?? []) as Prospect[]
@@ -91,7 +96,7 @@ export default async function DashboardPage() {
   const overdueCount = paymentsToChase.length
 
   const caWeek = allPayments
-    .filter((p) => p.status === 'paid' && p.payment_date >= mondayStr && p.payment_date <= sundayStr)
+    .filter((p) => p.status === 'paid' && p.payment_date >= mondayStr && p.payment_date <= monday.toISOString().split('T')[0])
     .reduce((s, p) => s + p.amount, 0)
 
   const weeklyTarget = objective?.revenue_target
@@ -112,6 +117,8 @@ export default async function DashboardPage() {
         showUpRate={showUpRate}
         showUpRateTarget={objective?.show_up_rate_target ?? 0}
         weekLabel={weekLabel}
+        upcomingTotal={upcomingTotal}
+        upcomingCount={upcomingCount}
       >
         <DailyTasks tasks={tasks ?? []} userId={user.id} />
       </DashboardProspectsWidget>
