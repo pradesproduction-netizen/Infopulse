@@ -21,10 +21,21 @@ export function useUpcomingPayments(infopreneurId: string): UpcomingPaymentsResu
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         .toISOString().split('T')[0]
 
+      const { data: clients } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('infopreneur_id', infopreneurId)
+
+      const clientIds = (clients ?? []).map((c: { id: string }) => c.id)
+      if (clientIds.length === 0) {
+        setResult({ total: 0, count: 0 })
+        return
+      }
+
       const { data: payments } = await supabase
         .from('payments')
         .select('amount')
-        .eq('infopreneur_id', infopreneurId)
+        .in('client_id', clientIds)
         .eq('status', 'pending')
         .gte('next_payment_date', startOfMonth)
         .lte('next_payment_date', endOfMonth)

@@ -11,10 +11,22 @@ export function usePaymentAlerts(infopreneurId: string): number {
 
     async function fetchCount() {
       const today = new Date().toISOString().split('T')[0]
+
+      const { data: clients } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('infopreneur_id', infopreneurId)
+
+      const clientIds = (clients ?? []).map((c: { id: string }) => c.id)
+      if (clientIds.length === 0) {
+        setCount(0)
+        return
+      }
+
       const { count: alertCount } = await supabase
         .from('payments')
         .select('id', { count: 'exact', head: true })
-        .eq('infopreneur_id', infopreneurId)
+        .in('client_id', clientIds)
         .lte('next_payment_date', today)
         .neq('status', 'paid')
 

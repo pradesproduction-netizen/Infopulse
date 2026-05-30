@@ -111,27 +111,39 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
         })
     } else if (type === 'relances') {
       supabase
-        .from('payments')
-        .select('id, amount, next_payment_date, client:clients(id, full_name, email)')
+        .from('clients')
+        .select('id')
         .eq('infopreneur_id', infopreneurId)
-        .lte('next_payment_date', today)
-        .neq('status', 'paid')
-        .order('next_payment_date', { ascending: true })
-        .then(({ data }) => {
+        .then(async ({ data: clients }) => {
+          const clientIds = (clients ?? []).map((c: { id: string }) => c.id)
+          if (clientIds.length === 0) { setRelances([]); setLoading(false); return }
+          const { data } = await supabase
+            .from('payments')
+            .select('id, amount, next_payment_date, client:clients(id, full_name, email)')
+            .in('client_id', clientIds)
+            .lte('next_payment_date', today)
+            .neq('status', 'paid')
+            .order('next_payment_date', { ascending: true })
           setRelances((data ?? []) as unknown as RelanceItem[])
           setLoading(false)
         })
     } else {
       // paiements pending ce mois (par next_payment_date)
       supabase
-        .from('payments')
-        .select('amount, next_payment_date, client:clients(id, full_name)')
+        .from('clients')
+        .select('id')
         .eq('infopreneur_id', infopreneurId)
-        .eq('status', 'pending')
-        .gte('next_payment_date', startOfMonthDate)
-        .lte('next_payment_date', endOfMonthDate)
-        .order('next_payment_date', { ascending: true })
-        .then(({ data }) => {
+        .then(async ({ data: clients }) => {
+          const clientIds = (clients ?? []).map((c: { id: string }) => c.id)
+          if (clientIds.length === 0) { setPayments([]); setLoading(false); return }
+          const { data } = await supabase
+            .from('payments')
+            .select('amount, next_payment_date, client:clients(id, full_name)')
+            .in('client_id', clientIds)
+            .eq('status', 'pending')
+            .gte('next_payment_date', startOfMonthDate)
+            .lte('next_payment_date', endOfMonthDate)
+            .order('next_payment_date', { ascending: true })
           setPayments((data ?? []) as unknown as PaymentItem[])
           setLoading(false)
         })
