@@ -27,7 +27,7 @@ export default async function ClientsPage({
   const isOverdueFilter = filtre === 'retard'
 
   let displayClients = allClients
-  let overdueAmounts: Record<string, number> = {}
+  const overdueAmounts: Record<string, number> = {}
 
   if (isOverdueFilter && allClients.length > 0) {
     const clientIds = allClients.map((c) => c.id)
