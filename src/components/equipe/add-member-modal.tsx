@@ -93,7 +93,7 @@ export function AddMemberModal() {
     const res = await fetch('/api/create-member-account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: form.email.trim(), memberId: newMember.id }),
+      body: JSON.stringify({ email: form.email.trim(), memberId: newMember.id, name: form.full_name.trim() }),
     })
 
     setLoading(false)

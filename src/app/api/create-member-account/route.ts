@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { email, memberId } = await req.json()
+  const { email, memberId, name } = await req.json()
   if (!email || !memberId) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
 
   const admin = createAdminClient()
