@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,30 +9,35 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sparkles, Loader2 } from 'lucide-react'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
+export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (password !== confirm) {
+      setError('Les mots de passe ne correspondent pas.')
+      return
+    }
+    if (password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères.')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({ password })
 
+    setLoading(false)
     if (error) {
       setError(error.message)
-      setLoading(false)
     } else {
       router.push('/dashboard')
-      router.refresh()
     }
   }
 
@@ -49,37 +53,34 @@ export default function LoginPage() {
 
         <Card className="border-white/10 bg-card/50 backdrop-blur-xl">
           <CardHeader className="space-y-2">
-            <CardTitle className="text-2xl">Connexion</CardTitle>
+            <CardTitle className="text-2xl">Nouveau mot de passe</CardTitle>
             <CardDescription>
-              Accède à ton dashboard de pilotage
+              Choisis un nouveau mot de passe pour ton compte
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="ton@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-violet-400 transition-colors">
-                    Mot de passe oublié ?
-                  </Link>
-                </div>
+                <Label htmlFor="password">Nouveau mot de passe</Label>
                 <Input
                   id="password"
                   type="password"
+                  placeholder="Minimum 6 caractères"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm">Confirmer le mot de passe</Label>
+                <Input
+                  id="confirm"
+                  type="password"
+                  placeholder="Répète le mot de passe"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
                   required
                   disabled={loading}
                 />
@@ -94,25 +95,15 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full bg-violet-500 hover:bg-violet-600"
-                disabled={loading}
+                disabled={loading || !password || !confirm}
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connexion...
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mise à jour...</>
                 ) : (
-                  'Se connecter'
+                  'Mettre à jour le mot de passe'
                 )}
               </Button>
             </form>
-
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              Pas encore de compte ?{' '}
-              <Link href="/signup" className="text-violet-400 hover:text-violet-300 font-medium">
-                Créer un compte
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </div>
