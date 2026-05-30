@@ -4,14 +4,26 @@ import { TeamProspectsKpi } from '@/components/equipe/team-prospects-kpi'
 import { TeamLeaderboard } from '@/components/equipe/team-leaderboard'
 import { TeamMembersGrid } from '@/components/equipe/team-members-grid'
 import { AddMemberModal } from '@/components/equipe/add-member-modal'
+
 export default async function EquipePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: teamMembers }, { data: calls }] = await Promise.all([
+  const now = new Date()
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+  const [{ data: teamMembers }, { data: calls }, { data: monthKpis }] = await Promise.all([
     supabase.from('team_members').select('*').eq('infopreneur_id', user.id),
     supabase.from('calls').select('*').eq('infopreneur_id', user.id),
+    supabase
+      .from('daily_kpis')
+      .select('team_member_id, role, ca_contracte, calls_bookes')
+      .eq('infopreneur_id', user.id)
+      .gte('date', monthStart)
+      .lte('date', monthEnd),
   ])
 
   const activeCount = teamMembers?.filter((m) => m.active).length ?? 0
@@ -28,11 +40,8 @@ export default async function EquipePage() {
         <AddMemberModal />
       </div>
 
-      <TeamProspectsKpi
-        teamMembers={teamMembers ?? []}
-        infopreneurId={user.id}
-      />
-      <TeamLeaderboard teamMembers={teamMembers ?? []} calls={calls ?? []} />
+      <TeamProspectsKpi teamMembers={teamMembers ?? []} infopreneurId={user.id} />
+      <TeamLeaderboard teamMembers={teamMembers ?? []} dailyKpis={monthKpis ?? []} />
       <TeamMembersGrid teamMembers={teamMembers ?? []} calls={calls ?? []} />
     </div>
   )

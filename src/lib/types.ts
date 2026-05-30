@@ -144,6 +144,28 @@ export interface Program {
   created_at: string
 }
 
+export interface DailyKpi {
+  id: string
+  team_member_id: string
+  infopreneur_id: string
+  date: string
+  role: 'closer' | 'setter'
+  r1_showup: number
+  r1_noshow: number
+  r2_showup: number
+  r2_noshow: number
+  pas_qualifie: number
+  pas_qualifie_note: string | null
+  signe: number
+  ca_contracte: number
+  ca_collecte: number
+  messages_envoyes: number
+  reponses_recues: number
+  followup: number
+  calls_bookes: number
+  created_at: string
+}
+
 export interface PaymentLink {
   id: string
   infopreneur_id: string

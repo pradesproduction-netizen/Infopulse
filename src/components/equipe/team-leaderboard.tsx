@@ -3,21 +3,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { TeamMember, Call } from '@/lib/types'
+import type { TeamMember } from '@/lib/types'
+
+interface DailyKpiRecord {
+  team_member_id: string
+  role: string
+  ca_contracte: number | null
+  calls_bookes: number | null
+}
 
 interface TeamLeaderboardProps {
   teamMembers: TeamMember[]
-  calls: Call[]
+  dailyKpis?: DailyKpiRecord[]
 }
 
 const MEDALS = ['🥇', '🥈', '🥉']
 const MEDAL_CLASSES = ['text-yellow-400', 'text-gray-300', 'text-amber-600']
-
-function isThisMonth(dateStr: string) {
-  const d = new Date(dateStr)
-  const now = new Date()
-  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-}
 
 function MemberAvatar({ name, role }: { name: string; role: string }) {
   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -29,30 +30,32 @@ function MemberAvatar({ name, role }: { name: string; role: string }) {
   )
 }
 
-export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
-  const thisMonthCalls = calls.filter((c) => isThisMonth(c.call_date))
-
+export function TeamLeaderboard({ teamMembers, dailyKpis = [] }: TeamLeaderboardProps) {
   const setters = teamMembers.filter((m) => m.role === 'setter')
   const closers = teamMembers.filter((m) => m.role === 'closer')
 
   const setterRanking = setters
-    .map((m) => ({
-      member: m,
-      messages: m.messages_sent ?? 0,
-      followUps: m.follow_ups ?? 0,
-      callsBooked: m.calls_booked ?? 0,
-    }))
+    .map((m) => {
+      const mKpis = dailyKpis.filter((k) => k.team_member_id === m.id)
+      const callsBooked = mKpis.length > 0
+        ? mKpis.reduce((s, k) => s + Number(k.calls_bookes ?? 0), 0)
+        : (m.calls_booked ?? 0)
+      return {
+        member: m,
+        messages: m.messages_sent ?? 0,
+        followUps: m.follow_ups ?? 0,
+        callsBooked,
+      }
+    })
     .sort((a, b) => b.callsBooked - a.callsBooked || b.messages - a.messages)
 
   const closerRanking = closers
     .map((m) => {
-      const mc = thisMonthCalls.filter((c) => c.team_member_id === m.id)
-      const completed = mc.filter((c) => c.status === 'completed').length
-      const noShow = mc.filter((c) => c.status === 'no_show').length
-      const showUpRate = completed + noShow > 0 ? Math.round((completed / (completed + noShow)) * 100) : 0
-      return { member: m, total: mc.length, showUpRate, signed: m.signed_clients ?? 0 }
+      const mKpis = dailyKpis.filter((k) => k.team_member_id === m.id)
+      const caContracte = mKpis.reduce((s, k) => s + Number(k.ca_contracte ?? 0), 0)
+      return { member: m, caContracte, signed: m.signed_clients ?? 0 }
     })
-    .sort((a, b) => b.signed - a.signed || b.showUpRate - a.showUpRate)
+    .sort((a, b) => b.caContracte - a.caContracte || b.signed - a.signed)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -93,7 +96,7 @@ export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
                       </td>
                       <td className="p-3 text-sm">{messages}</td>
                       <td className="p-3 text-sm">{followUps}</td>
-                      <td className="p-3 text-sm">{callsBooked}</td>
+                      <td className="p-3 text-sm font-medium">{callsBooked}</td>
                       <td className="p-3">
                         {i === 0 && callsBooked > 0 && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 whitespace-nowrap">
@@ -126,14 +129,14 @@ export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    {['Rang', 'Membre', 'Appels', 'Show-up', 'Signés', 'Badge'].map((col) => (
+                    {['Rang', 'Membre', 'CA contracté', 'Signés', 'Badge'].map((col) => (
                       <th key={col} className="text-left p-3 text-xs font-medium text-muted-foreground whitespace-nowrap">{col}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {closerRanking.map(({ member, total, showUpRate, signed }, i) => (
-                    <tr key={member.id} className={cn('border-b border-white/5 last:border-0', i === 0 && signed > 0 && 'bg-yellow-500/[0.04]')}>
+                  {closerRanking.map(({ member, caContracte, signed }, i) => (
+                    <tr key={member.id} className={cn('border-b border-white/5 last:border-0', i === 0 && caContracte > 0 && 'bg-yellow-500/[0.04]')}>
                       <td className="p-3">
                         <span className={cn('text-base', MEDAL_CLASSES[i] ?? 'text-muted-foreground')}>
                           {MEDALS[i] ?? `#${i + 1}`}
@@ -145,11 +148,12 @@ export function TeamLeaderboard({ teamMembers, calls }: TeamLeaderboardProps) {
                           <span className="text-sm font-medium whitespace-nowrap">{member.full_name}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-sm">{total}</td>
-                      <td className="p-3 text-sm">{showUpRate}%</td>
+                      <td className="p-3 text-sm font-medium">
+                        {caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '—'}
+                      </td>
                       <td className="p-3 text-sm">{signed}</td>
                       <td className="p-3">
-                        {i === 0 && signed > 0 && (
+                        {i === 0 && caContracte > 0 && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">
                             🏆 Top closer
                           </span>

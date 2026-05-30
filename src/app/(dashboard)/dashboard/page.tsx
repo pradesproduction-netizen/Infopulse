@@ -21,6 +21,10 @@ function getWeekBounds() {
   return { monday, sunday }
 }
 
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,7 +33,8 @@ export default async function DashboardPage() {
   const now = new Date()
   const today = now.toISOString().split('T')[0]
   const { monday, sunday } = getWeekBounds()
-  const mondayStr = monday.toISOString().split('T')[0]
+  const mondayStr = toDateStr(monday)
+  const sundayStr = toDateStr(sunday)
 
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
@@ -42,6 +47,7 @@ export default async function DashboardPage() {
     { data: objective },
     { data: paymentsToChaseRaw },
     { data: upcomingPayments },
+    { data: weekKpis },
   ] = await Promise.all([
     supabase.from('daily_tasks').select('*')
       .eq('infopreneur_id', user.id)
@@ -68,37 +74,48 @@ export default async function DashboardPage() {
       .gte('next_payment_date', monthStart)
       .lte('next_payment_date', monthEnd)
       .order('next_payment_date', { ascending: true }),
+    supabase.from('daily_kpis')
+      .select('ca_collecte, ca_contracte, r1_showup, r1_noshow, r2_showup, r2_noshow, signe')
+      .eq('infopreneur_id', user.id)
+      .eq('role', 'closer')
+      .gte('date', mondayStr)
+      .lte('date', sundayStr),
   ])
-
-  console.log('upcomingPayments final:', upcomingPayments)
-
-  const clientIds = clients?.map((c) => c.id) ?? []
-  const { data: payments } = clientIds.length > 0
-    ? await supabase.from('payments').select('amount, status, payment_date').in('client_id', clientIds)
-    : { data: [] as { amount: number; status: string; payment_date: string }[] }
 
   const upcomingList = upcomingPayments ?? []
   const upcomingTotal = upcomingList.reduce((s, p) => s + Number(p.amount), 0)
   const upcomingCount = upcomingList.length
 
-  const allPayments = payments ?? []
   const allProspects = (prospects ?? []) as Prospect[]
   const paymentsToChase = (paymentsToChaseRaw ?? []) as unknown as PaymentToChase[]
+  const overdueCount = paymentsToChase.length
 
   const prospectTotal = allProspects.length
   const prospectWon = allProspects.filter((p) => p.pipeline_stage === 'Gagné').length
   const prospectNoShows = allProspects.filter((p) => p.pipeline_stage === 'No show').length
   const prospectHonored = allProspects.filter((p) => HONORED_STAGES.includes(p.pipeline_stage)).length
-  const closingRate = prospectTotal > 0 ? Math.round((prospectWon / prospectTotal) * 100) : 0
-  const showUpRate = prospectHonored + prospectNoShows > 0
+  const closingRateFromProspects = prospectTotal > 0 ? Math.round((prospectWon / prospectTotal) * 100) : 0
+  const showUpRateFromProspects = prospectHonored + prospectNoShows > 0
     ? Math.round((prospectHonored / (prospectHonored + prospectNoShows)) * 100)
     : 0
 
-  const overdueCount = paymentsToChase.length
+  // Weekly recap from daily_kpis (closers)
+  const kpiList = weekKpis ?? []
+  const caWeekFromKpis = kpiList.reduce((s, k) => s + Number(k.ca_collecte ?? 0), 0)
+  const totalShowup = kpiList.reduce((s, k) => s + Number(k.r1_showup ?? 0) + Number(k.r2_showup ?? 0), 0)
+  const totalAllCalls = kpiList.reduce((s, k) => s + Number(k.r1_showup ?? 0) + Number(k.r1_noshow ?? 0) + Number(k.r2_showup ?? 0) + Number(k.r2_noshow ?? 0), 0)
+  const totalSigned = kpiList.reduce((s, k) => s + Number(k.signe ?? 0), 0)
+  const showUpRateFromKpis = totalAllCalls > 0 ? Math.round((totalShowup / totalAllCalls) * 100) : 0
+  const closingRateFromKpis = totalShowup > 0 ? Math.round((totalSigned / totalShowup) * 100) : 0
 
-  const caWeek = allPayments
-    .filter((p) => p.status === 'paid' && p.payment_date >= mondayStr && p.payment_date <= monday.toISOString().split('T')[0])
-    .reduce((s, p) => s + p.amount, 0)
+  // Prefer daily_kpis data when available, fallback to prospect-based calculations
+  const hasKpiData = kpiList.length > 0
+  const caWeek = hasKpiData ? caWeekFromKpis : (() => {
+    const clientIds = clients?.map((c) => c.id) ?? []
+    return 0 // fallback: no payment fetch needed since we use daily_kpis
+  })()
+  const closingRate = hasKpiData ? closingRateFromKpis : closingRateFromProspects
+  const showUpRate = hasKpiData ? showUpRateFromKpis : showUpRateFromProspects
 
   const weeklyTarget = objective?.revenue_target
     ? Math.round(objective.revenue_target / 4)
