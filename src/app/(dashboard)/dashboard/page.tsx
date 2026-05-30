@@ -63,23 +63,15 @@ export default async function DashboardPage() {
     supabase.from('payments')
       .select('*, clients(full_name, id)')
       .eq('infopreneur_id', user.id)
-      .eq('status', 'pending')
-      .gte('next_payment_date', monthStart)
-      .lte('next_payment_date', monthEnd)
-      .order('next_payment_date', { ascending: true }),
+      .eq('status', 'pending'),
   ])
 
-  console.log('SERVER user.id:', user.id)
-  console.log('SERVER monthStart:', monthStart, 'monthEnd:', monthEnd)
-  console.log('SERVER upcomingPayments:', upcomingPayments)
-
-  // Debug : tous les pending sans filtre infopreneur_id pour voir ce qui existe
-  const { data: _debugAll } = await supabase
+  const { data: _testUpcoming, error: _upcomingError } = await supabase
     .from('payments')
-    .select('id, amount, status, next_payment_date, infopreneur_id')
+    .select('*, clients(full_name, id)')
+    .eq('infopreneur_id', user.id)
     .eq('status', 'pending')
-    .limit(5)
-  console.log('SERVER debug all pending (no filter):', _debugAll)
+  console.log('TEST upcomingPayments:', _testUpcoming, _upcomingError)
 
   const clientIds = clients?.map((c) => c.id) ?? []
   const { data: payments } = clientIds.length > 0
