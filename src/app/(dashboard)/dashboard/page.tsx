@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DailyTasks } from '@/components/dashboard/daily-tasks'
 import { DashboardProspectsWidget } from '@/components/dashboard/dashboard-prospects-widget'
-import type { Prospect } from '@/lib/types'
+import type { Prospect, PaymentToChase } from '@/lib/types'
 
 const HONORED_STAGES: Prospect['pipeline_stage'][] = [
   'Proposition envoyée', 'Follow-up', 'Gagné', 'Perdu',
@@ -28,8 +28,6 @@ export default async function DashboardPage() {
 
   const now = new Date()
   const today = now.toISOString().split('T')[0]
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
   const { monday, sunday } = getWeekBounds()
   const mondayStr = monday.toISOString().split('T')[0]
   const sundayStr = sunday.toISOString().split('T')[0]
@@ -39,6 +37,7 @@ export default async function DashboardPage() {
     { data: clients },
     { data: prospects },
     { data: objective },
+    { data: paymentsToChaseRaw },
   ] = await Promise.all([
     supabase.from('daily_tasks').select('*')
       .eq('infopreneur_id', user.id)
@@ -52,6 +51,12 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from('payments')
+      .select('id, amount, next_payment_date, clients(full_name, email, phone)')
+      .eq('infopreneur_id', user.id)
+      .lte('next_payment_date', today)
+      .neq('status', 'paid')
+      .order('next_payment_date', { ascending: true }),
   ])
 
   const clientIds = clients?.map((c) => c.id) ?? []
@@ -61,8 +66,8 @@ export default async function DashboardPage() {
 
   const allPayments = payments ?? []
   const allProspects = (prospects ?? []) as Prospect[]
+  const paymentsToChase = (paymentsToChaseRaw ?? []) as unknown as PaymentToChase[]
 
-  // Static values for WeeklyRecap (not realtime — computed once at render)
   const prospectTotal = allProspects.length
   const prospectWon = allProspects.filter((p) => p.pipeline_stage === 'Gagné').length
   const prospectNoShows = allProspects.filter((p) => p.pipeline_stage === 'No show').length
@@ -72,7 +77,7 @@ export default async function DashboardPage() {
     ? Math.round((prospectHonored / (prospectHonored + prospectNoShows)) * 100)
     : 0
 
-  const overdueCount = allPayments.filter((p) => p.status === 'a_relancer').length
+  const overdueCount = paymentsToChase.length
 
   const caWeek = allPayments
     .filter((p) => p.status === 'paid' && p.payment_date >= mondayStr && p.payment_date <= sundayStr)

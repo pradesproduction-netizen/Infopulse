@@ -20,7 +20,7 @@ function getUpcomingPaymentsSub(): string {
 }
 
 function StatCard({
-  title, value, sub, icon: Icon, iconBg, onClick,
+  title, value, sub, icon: Icon, iconBg, onClick, danger,
 }: {
   title: string
   value: string
@@ -28,12 +28,14 @@ function StatCard({
   icon: React.ElementType
   iconBg: string
   onClick?: () => void
+  danger?: boolean
 }) {
   return (
     <Card
       className={cn(
         'border-white/10 bg-card/50 hover:bg-card/70 transition-colors',
-        onClick && 'cursor-pointer'
+        onClick && 'cursor-pointer',
+        danger && 'border-red-500/40 bg-red-500/[0.06] hover:bg-red-500/[0.10]'
       )}
       onClick={onClick}
     >
@@ -44,8 +46,8 @@ function StatCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+        <div className={cn('text-2xl font-bold', danger && 'text-red-400')}>{value}</div>
+        <p className={cn('text-xs mt-1', danger ? 'text-red-400' : 'text-muted-foreground')}>{sub}</p>
       </CardContent>
     </Card>
   )
@@ -112,10 +114,11 @@ export function DashboardProspectsWidget({
           <StatCard
             title="Relances paiement"
             value={String(alertCount)}
-            sub={alertCount > 0 ? `${alertCount} échéance${alertCount !== 1 ? 's' : ''} à relancer` : 'Aucun retard de paiement'}
+            sub={alertCount > 0 ? `${alertCount} client${alertCount !== 1 ? 's' : ''} à relancer` : 'Aucun retard de paiement'}
             icon={Bell}
             iconBg={alertCount > 0 ? 'bg-red-500' : 'bg-gray-500'}
-            onClick={() => setOpenPanel('relances')}
+            danger={alertCount > 0}
+            onClick={alertCount > 0 ? () => setOpenPanel('relances') : undefined}
           />
         </div>
 

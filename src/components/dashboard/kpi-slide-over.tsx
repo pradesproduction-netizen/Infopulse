@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { X, ArrowRight, Loader2 } from 'lucide-react'
+import { X, ArrowRight, Loader2, Mail, CheckCircle, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 export type PanelType = 'ca_mois' | 'rdv_booke' | 'paiements' | 'relances'
 
@@ -25,11 +26,18 @@ interface PaymentItem {
   client: { id: string; full_name: string }
 }
 
+interface RelanceItem {
+  id: string
+  amount: number
+  next_payment_date: string
+  client: { id: string; full_name: string; email: string | null } | null
+}
+
 const TITLES: Record<PanelType, string> = {
   ca_mois:   'CA du mois — Prospects gagnés',
   rdv_booke: 'Appels prévus — RDV bookés',
   paiements: 'Paiements à venir — En attente ce mois',
-  relances:  'Relances paiement — À relancer',
+  relances:  '💸 Relances paiement',
 }
 
 interface KpiSlideOverProps {
@@ -43,12 +51,17 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
   const [loading, setLoading] = useState(false)
   const [prospects, setProspects] = useState<ProspectItem[]>([])
   const [payments, setPayments] = useState<PaymentItem[]>([])
+  const [relances, setRelances] = useState<RelanceItem[]>([])
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
+  const [loadingPayId, setLoadingPayId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!type) return
     setLoading(true)
     setProspects([])
     setPayments([])
+    setRelances([])
+    setDismissedIds(new Set())
 
     const supabase = createClient()
     const now = new Date()
@@ -56,6 +69,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
     const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
     const startOfMonthDate = startOfMonth.split('T')[0]
     const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    const today = now.toISOString().split('T')[0]
 
     if (type === 'ca_mois') {
       supabase
@@ -96,8 +110,20 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
           setProspects((data ?? []) as ProspectItem[])
           setLoading(false)
         })
+    } else if (type === 'relances') {
+      supabase
+        .from('payments')
+        .select('id, amount, next_payment_date, client:clients(id, full_name, email)')
+        .eq('infopreneur_id', infopreneurId)
+        .lte('next_payment_date', today)
+        .neq('status', 'paid')
+        .order('next_payment_date', { ascending: true })
+        .then(({ data }) => {
+          setRelances((data ?? []) as unknown as RelanceItem[])
+          setLoading(false)
+        })
     } else {
-      // paiements (pending ce mois) ou relances (a_relancer tous)
+      // paiements (pending ce mois)
       supabase
         .from('clients')
         .select('id')
@@ -109,27 +135,37 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
             setLoading(false)
             return
           }
-          let query = supabase
+          const { data } = await supabase
             .from('payments')
             .select('amount, payment_date, status, client:clients(id, full_name)')
             .in('client_id', clientIds)
+            .eq('status', 'pending')
+            .gte('payment_date', startOfMonthDate)
+            .lte('payment_date', endOfMonthDate)
             .order('payment_date')
 
-          if (type === 'paiements') {
-            query = query
-              .eq('status', 'pending')
-              .gte('payment_date', startOfMonthDate)
-              .lte('payment_date', endOfMonthDate)
-          } else {
-            query = query.eq('status', 'a_relancer')
-          }
-
-          const { data } = await query
           setPayments((data ?? []) as unknown as PaymentItem[])
           setLoading(false)
         })
     }
   }, [type, infopreneurId])
+
+  async function markPaid(id: string) {
+    setLoadingPayId(id)
+    const supabase = createClient()
+    const today = new Date().toISOString().split('T')[0]
+    const { error } = await supabase
+      .from('payments')
+      .update({ status: 'paid', paid_at: today })
+      .eq('id', id)
+    setLoadingPayId(null)
+    if (error) {
+      toast.error('Erreur lors de la mise à jour')
+    } else {
+      setDismissedIds((prev) => new Set([...prev, id]))
+      toast.success('Paiement marqué comme payé ✓')
+    }
+  }
 
   // Close on Escape key
   useEffect(() => {
@@ -138,6 +174,18 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
+
+  const visibleRelances = relances.filter((r) => !dismissedIds.has(r.id))
+
+  function getDaysOverdue(dateStr: string): number {
+    return Math.max(0, Math.floor((Date.now() - new Date(dateStr + 'T00:00:00').getTime()) / 86_400_000))
+  }
+
+  function formatDate(dateStr: string): string {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    })
+  }
 
   return (
     <>
@@ -172,12 +220,89 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : type === 'paiements' || type === 'relances' ? (
+          ) : type === 'relances' ? (
+            visibleRelances.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-16">
+                Aucune relance en cours. 🎉
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {visibleRelances.map((r) => {
+                  const days = getDaysOverdue(r.next_payment_date)
+                  const clientName = r.client?.full_name ?? 'Client inconnu'
+                  const clientEmail = r.client?.email ?? ''
+                  const isPaying = loadingPayId === r.id
+                  const subject = encodeURIComponent('Rappel paiement')
+                  const body = encodeURIComponent(
+                    `Bonjour ${clientName},\n\nVotre paiement de ${r.amount.toLocaleString('fr-FR')} € est dû depuis le ${formatDate(r.next_payment_date)}.\n\nMerci de procéder au règlement dans les meilleurs délais.\n\nCordialement`
+                  )
+
+                  return (
+                    <li
+                      key={r.id}
+                      className="rounded-lg border border-red-500/20 bg-red-500/[0.04] px-4 py-3 space-y-2.5"
+                    >
+                      {/* Top row: name + badge */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-medium truncate flex-1">{clientName}</p>
+                        <span className="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-medium">
+                          À relancer
+                        </span>
+                      </div>
+
+                      {/* Amount + date + days */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-semibold text-red-400">
+                          {r.amount.toLocaleString('fr-FR')} €
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">
+                          {new Date(r.next_payment_date + 'T00:00:00').toLocaleDateString('fr-FR', {
+                            day: 'numeric', month: 'long',
+                          })}
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className={cn(
+                          'flex items-center gap-1',
+                          days > 0 ? 'text-red-400' : 'text-muted-foreground'
+                        )}>
+                          <Clock className="h-3 w-3" />
+                          {days === 0 ? "Aujourd'hui" : `${days}j de retard`}
+                        </span>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 pt-0.5">
+                        {clientEmail && (
+                          <a
+                            href={`mailto:${clientEmail}?subject=${subject}&body=${body}`}
+                            className="flex-1 flex items-center justify-center gap-1.5 h-8 text-xs rounded-md border border-white/20 hover:border-violet-500/50 hover:text-violet-400 transition-colors"
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            Relancer
+                          </a>
+                        )}
+                        <button
+                          className="flex-1 flex items-center justify-center gap-1.5 h-8 text-xs rounded-md bg-green-600/80 hover:bg-green-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => void markPaid(r.id)}
+                          disabled={isPaying}
+                        >
+                          {isPaying
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <CheckCircle className="h-3.5 w-3.5" />
+                          }
+                          Payé
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )
+          ) : type === 'paiements' ? (
             payments.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-16">
-                {type === 'relances'
-                  ? 'Aucune relance en cours.'
-                  : 'Aucun paiement à venir ce mois-ci.'}
+                Aucun paiement à venir ce mois-ci.
               </p>
             ) : (
               <ul className="space-y-2">
@@ -194,9 +319,6 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
                         {new Date(p.payment_date + 'T00:00:00').toLocaleDateString('fr-FR', {
                           day: 'numeric', month: 'long',
                         })}
-                        {p.status === 'a_relancer' && (
-                          <span className="ml-1.5 text-red-400">· À relancer</span>
-                        )}
                       </p>
                     </div>
                     <Link
