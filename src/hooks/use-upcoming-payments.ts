@@ -16,31 +16,21 @@ export function useUpcomingPayments(infopreneurId: string): UpcomingPaymentsResu
 
     async function fetchTotal() {
       const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
         .toISOString().split('T')[0]
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         .toISOString().split('T')[0]
 
-      const { data: clients } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('infopreneur_id', infopreneurId)
-
-      const clientIds = (clients ?? []).map((c: { id: string }) => c.id)
-      if (clientIds.length === 0) {
-        setResult({ total: 0, count: 0 })
-        return
-      }
-
-      const { data: payments } = await supabase
+      const { data } = await supabase
         .from('payments')
-        .select('amount')
-        .in('client_id', clientIds)
+        .select('*, clients(full_name, id)')
+        .eq('infopreneur_id', infopreneurId)
         .eq('status', 'pending')
-        .gte('next_payment_date', startOfMonth)
-        .lte('next_payment_date', endOfMonth)
+        .gte('next_payment_date', monthStart)
+        .lte('next_payment_date', monthEnd)
+        .order('next_payment_date', { ascending: true })
 
-      const list = payments ?? []
+      const list = data ?? []
       setResult({
         total: list.reduce((s, p) => s + Number(p.amount), 0),
         count: list.length,
