@@ -76,11 +76,16 @@ export function PaymentsTab({ payments, clientId }: PaymentsTabProps) {
     e.preventDefault()
     setAddSaving(true)
     const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    const today = new Date().toISOString().split('T')[0]
+    const status = form.payment_date <= today ? 'a_relancer' : 'pending'
     await supabase.from('payments').insert({
       client_id: clientId,
+      infopreneur_id: session?.user?.id ?? null,
       payment_date: form.payment_date,
+      next_payment_date: form.payment_date,
       amount: Number(form.amount),
-      status: 'pending',
+      status,
       paid_at: null,
     })
     setAddSaving(false)
