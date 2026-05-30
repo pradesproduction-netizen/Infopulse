@@ -105,6 +105,7 @@ export interface Call {
 export interface TeamMember {
   id: string
   infopreneur_id: string
+  user_id: string | null
   full_name: string
   email: string
   phone: string | null

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog } from '@/components/ui/alert-dialog'
-import { Pencil, Trash2, Power, Loader2, ArrowRight } from 'lucide-react'
+import { Pencil, Trash2, Power, Loader2, ArrowRight, Link2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { TeamMember, Call } from '@/lib/types'
@@ -148,6 +148,14 @@ function MemberCard({ member, calls }: MemberCardProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [toggleLoading, setToggleLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopyLink() {
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
+    await navigator.clipboard.writeText(base + '/espace-equipe')
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const thisMonthCalls = calls.filter((c) => c.team_member_id === member.id && isThisMonth(c.call_date))
   const completed = thisMonthCalls.filter((c) => c.status === 'completed').length
@@ -236,6 +244,21 @@ function MemberCard({ member, calls }: MemberCardProps) {
             Voir le profil
             <ArrowRight className="h-3 w-3" />
           </Link>
+          <button
+            onClick={handleCopyLink}
+            className={cn(
+              'flex items-center justify-center gap-1.5 w-full text-xs transition-colors py-1.5 rounded-lg border mt-2',
+              copied
+                ? 'text-green-300 border-green-500/30 bg-green-500/10'
+                : 'text-muted-foreground hover:text-white border-white/10 hover:bg-white/5'
+            )}
+          >
+            {copied ? (
+              <><Check className="h-3 w-3" /> Lien copié !</>
+            ) : (
+              <><Link2 className="h-3 w-3" /> Copier le lien d&apos;accès</>
+            )}
+          </button>
         </CardContent>
       </Card>
 
