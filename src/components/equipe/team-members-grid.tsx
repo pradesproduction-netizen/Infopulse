@@ -152,7 +152,7 @@ function MemberCard({ member, calls }: MemberCardProps) {
 
   async function handleCopyLink() {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
-    await navigator.clipboard.writeText(`${base}/espace-equipe?member=${member.id}`)
+    await navigator.clipboard.writeText(`${base}/espace-equipe`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -246,6 +246,7 @@ function MemberCard({ member, calls }: MemberCardProps) {
           </Link>
           <button
             onClick={handleCopyLink}
+            title="Lien identique pour tous les membres. Chaque membre se connecte avec son propre email et mot de passe."
             className={cn(
               'flex items-center justify-center gap-1.5 w-full text-xs transition-colors py-1.5 rounded-lg border mt-2',
               copied

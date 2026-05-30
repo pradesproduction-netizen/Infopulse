@@ -85,34 +85,31 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
   const { member: memberIdParam } = await searchParams
   const admin = createAdminClient()
 
-  let member: TeamMember | null = null
-  let isInfopreneurView = false
+  // --- Résolution de l'identité ---
+  // 1. Cherche le membre lié AU compte connecté (priorité absolue)
+  const ownMember = await findTeamMemberOrNull(user.id, user.email ?? '')
 
-  if (memberIdParam) {
-    // Load the specific member from the URL param
-    const { data: specificMember } = await admin
+  let member: TeamMember | null = ownMember
+  let isReadOnly = false
+
+  // 2. Si ?member param ET l'utilisateur connecté n'est PAS ce membre
+  //    → vérifier si c'est l'infopreneur (vue lecture seule)
+  if (memberIdParam && (!ownMember || ownMember.id !== memberIdParam)) {
+    const { data: targetMember } = await admin
       .from('team_members')
       .select('*')
       .eq('id', memberIdParam)
       .maybeSingle()
 
-    if (specificMember) {
-      const isOwnMember =
-        specificMember.user_id === user.id ||
-        specificMember.email === user.email
-      const isInfopreneur = specificMember.infopreneur_id === user.id
-
-      // Block access if neither the member nor their infopreneur
-      if (!isOwnMember && !isInfopreneur) redirect('/login')
-
-      member = specificMember as TeamMember
-      isInfopreneurView = isInfopreneur && !isOwnMember
+    if (targetMember && targetMember.infopreneur_id === user.id) {
+      member = targetMember as TeamMember
+      isReadOnly = true
+    } else if (!ownMember) {
+      // Ni membre ni infopreneur de ce membre
+      redirect('/login')
     }
-  }
-
-  // Fallback: find member by user_id / email
-  if (!member) {
-    member = await findTeamMemberOrNull(user.id, user.email ?? '')
+    // Si ownMember existe mais que le param pointe ailleurs → on ignore le param
+    // et on affiche les KPI du membre connecté (déjà dans `member`)
   }
 
   if (!member) {
@@ -166,10 +163,12 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
       <AutoRefresh ms={30000} />
 
       {/* Bandeau lecture seule pour l'infopreneur */}
-      {isInfopreneurView && (
+      {isReadOnly && (
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-4 py-2.5 flex items-center gap-2 text-sm text-blue-300">
           <BarChart2 className="h-4 w-4 flex-shrink-0" />
-          Vous consultez les KPI de <span className="font-semibold ml-1">{member.full_name}</span>
+          Vous consultez les KPI de{' '}
+          <span className="font-semibold">{member.full_name}</span>
+          <span className="text-blue-300/60 ml-1">(lecture seule)</span>
         </div>
       )}
 
@@ -178,9 +177,11 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
         <div>
           <p className="text-sm text-muted-foreground capitalize">{dateStr}</p>
           <h1 className="text-2xl font-bold mt-1">
-            {isInfopreneurView ? `KPI de ${firstName}` : `Bonjour ${firstName} 👋`}
+            {isReadOnly ? `KPI de ${firstName}` : `Bonjour ${firstName} 👋`}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Voici un aperçu de tes performances.</p>
+          {!isReadOnly && (
+            <p className="text-muted-foreground text-sm mt-1">Voici un aperçu de tes performances.</p>
+          )}
         </div>
         {todayFilled ? (
           <Badge className="bg-green-500/20 text-green-300 border border-green-500/30 text-sm px-3 py-1 h-auto">
@@ -193,11 +194,12 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {/* Calendrier mensuel */}
+      {/* Calendrier mensuel — lecture seule si infopreneur */}
       <DailyKpiCalendar
         teamMemberId={member.id}
         role={role}
         initialFilledDates={filledDates}
+        readOnly={isReadOnly}
       />
 
       {/* Résumé semaine en cours */}
@@ -214,7 +216,9 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
         <CardContent>
           {!hasWeekData ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Aucune donnée cette semaine — remplis tes KPI du jour depuis le calendrier.
+              {isReadOnly
+                ? 'Aucune donnée cette semaine.'
+                : 'Aucune donnée cette semaine — remplis tes KPI du jour depuis le calendrier.'}
             </p>
           ) : role === 'closer' ? (
             <CloserWeekSummary kpis={weekKpiList} />

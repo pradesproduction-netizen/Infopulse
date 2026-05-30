@@ -16,6 +16,7 @@ interface DailyKpiCalendarProps {
   teamMemberId: string
   role: 'closer' | 'setter'
   initialFilledDates: string[]
+  readOnly?: boolean
 }
 
 function toDateStr(d: Date): string {
@@ -37,7 +38,7 @@ function getMonthGrid(year: number, month: number): (Date | null)[][] {
   return weeks
 }
 
-export function DailyKpiCalendar({ teamMemberId, role, initialFilledDates }: DailyKpiCalendarProps) {
+export function DailyKpiCalendar({ teamMemberId, role, initialFilledDates, readOnly = false }: DailyKpiCalendarProps) {
   const [filledDates, setFilledDates] = useState<Set<string>>(new Set(initialFilledDates))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
@@ -95,13 +96,16 @@ export function DailyKpiCalendar({ teamMemberId, role, initialFilledDates }: Dai
                       return (
                         <td key={di} className="p-1 text-center">
                           <button
-                            onClick={() => !isFuture && setSelectedDate(dateStr)}
-                            disabled={isFuture}
+                            onClick={() => !isFuture && !readOnly && setSelectedDate(dateStr)}
+                            disabled={isFuture || readOnly}
                             className={cn(
                               'h-9 w-9 rounded-full text-sm font-medium transition-all mx-auto flex items-center justify-center',
-                              isFilled && 'bg-green-500/20 text-green-300 hover:bg-green-500/30',
-                              !isFilled && !isFuture && 'bg-red-500/20 text-red-300 hover:bg-red-500/30',
+                              isFilled && !readOnly && 'bg-green-500/20 text-green-300 hover:bg-green-500/30',
+                              isFilled && readOnly && 'bg-green-500/20 text-green-300',
+                              !isFilled && !isFuture && !readOnly && 'bg-red-500/20 text-red-300 hover:bg-red-500/30',
+                              !isFilled && !isFuture && readOnly && 'bg-red-500/20 text-red-300',
                               isFuture && 'text-muted-foreground/30 cursor-not-allowed',
+                              readOnly && !isFuture && 'cursor-default',
                               isToday && 'ring-2 ring-white/60 ring-offset-1 ring-offset-background',
                             )}
                           >
@@ -129,7 +133,7 @@ export function DailyKpiCalendar({ teamMemberId, role, initialFilledDates }: Dai
         </CardContent>
       </Card>
 
-      {selectedDate && (
+      {selectedDate && !readOnly && (
         <DailyKpiModal
           date={selectedDate}
           teamMemberId={teamMemberId}
