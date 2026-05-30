@@ -7,7 +7,7 @@ import { DailyKpiCalendar } from '@/components/equipe/daily-kpi-calendar'
 import { AutoRefresh } from '@/components/ui/auto-refresh'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { PhoneCall, Calendar, TrendingUp, BarChart2, MessageSquare, Phone } from 'lucide-react'
+import { PhoneCall, Calendar, TrendingUp, BarChart2, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Call, Prospect, DailyKpi, TeamMember } from '@/lib/types'
 
@@ -16,6 +16,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   completed: { label: 'Terminé', className: 'bg-green-500/10 text-green-300 border-green-500/30' },
   cancelled: { label: 'Annulé', className: 'bg-gray-500/10 text-gray-400 border-gray-500/30' },
   no_show: { label: 'No-show', className: 'bg-orange-500/10 text-orange-300 border-orange-500/30' },
+}
+
+interface PageProps {
+  searchParams: Promise<{ member?: string }>
 }
 
 function toDateStr(d: Date): string {
@@ -48,7 +52,6 @@ function CloserWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
   const totalSigned = kpis.reduce((s, k) => s + k.signe, 0)
   const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte), 0)
   const showUpRate = totalCalls > 0 ? Math.round((totalShowup / totalCalls) * 100) : 0
-
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <KpiTile label="Appels" value={totalCalls} />
@@ -64,7 +67,6 @@ function SetterWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
   const totalReplies = kpis.reduce((s, k) => s + k.reponses_recues, 0)
   const totalFollowups = kpis.reduce((s, k) => s + k.followup, 0)
   const totalCallsBooked = kpis.reduce((s, k) => s + k.calls_bookes, 0)
-
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <KpiTile label="Messages" value={totalMessages} />
@@ -75,12 +77,43 @@ function SetterWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
   )
 }
 
-export default async function EspaceEquipePage() {
+export default async function EspaceEquipePage({ searchParams }: PageProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const member = await findTeamMemberOrNull(user.id, user.email ?? '')
+  const { member: memberIdParam } = await searchParams
+  const admin = createAdminClient()
+
+  let member: TeamMember | null = null
+  let isInfopreneurView = false
+
+  if (memberIdParam) {
+    // Load the specific member from the URL param
+    const { data: specificMember } = await admin
+      .from('team_members')
+      .select('*')
+      .eq('id', memberIdParam)
+      .maybeSingle()
+
+    if (specificMember) {
+      const isOwnMember =
+        specificMember.user_id === user.id ||
+        specificMember.email === user.email
+      const isInfopreneur = specificMember.infopreneur_id === user.id
+
+      // Block access if neither the member nor their infopreneur
+      if (!isOwnMember && !isInfopreneur) redirect('/login')
+
+      member = specificMember as TeamMember
+      isInfopreneurView = isInfopreneur && !isOwnMember
+    }
+  }
+
+  // Fallback: find member by user_id / email
+  if (!member) {
+    member = await findTeamMemberOrNull(user.id, user.email ?? '')
+  }
 
   if (!member) {
     return (
@@ -97,7 +130,6 @@ export default async function EspaceEquipePage() {
     )
   }
 
-  const admin = createAdminClient()
   const now = new Date()
   const today = toDateStr(now)
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
@@ -123,22 +155,31 @@ export default async function EspaceEquipePage() {
 
   const scheduledCalls = allCalls.filter((c) => c.status === 'scheduled')
   const recentCalls = allCalls.slice(0, 10)
+  const firstName = member.full_name.split(' ')[0]
+  const role = member.role as 'closer' | 'setter'
 
   const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-  const firstName = (member as TeamMember).full_name.split(' ')[0]
-  const role = (member as TeamMember & { role: 'closer' | 'setter' }).role
-
   const weekLabel = `${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${sunday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
 
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
       <AutoRefresh ms={30000} />
 
+      {/* Bandeau lecture seule pour l'infopreneur */}
+      {isInfopreneurView && (
+        <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-4 py-2.5 flex items-center gap-2 text-sm text-blue-300">
+          <BarChart2 className="h-4 w-4 flex-shrink-0" />
+          Vous consultez les KPI de <span className="font-semibold ml-1">{member.full_name}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <p className="text-sm text-muted-foreground capitalize">{dateStr}</p>
-          <h1 className="text-2xl font-bold mt-1">Bonjour {firstName} 👋</h1>
+          <h1 className="text-2xl font-bold mt-1">
+            {isInfopreneurView ? `KPI de ${firstName}` : `Bonjour ${firstName} 👋`}
+          </h1>
           <p className="text-muted-foreground text-sm mt-1">Voici un aperçu de tes performances.</p>
         </div>
         {todayFilled ? (
@@ -152,7 +193,7 @@ export default async function EspaceEquipePage() {
         )}
       </div>
 
-      {/* Calendrier mensuel + modale */}
+      {/* Calendrier mensuel */}
       <DailyKpiCalendar
         teamMemberId={member.id}
         role={role}
@@ -163,7 +204,9 @@ export default async function EspaceEquipePage() {
       <Card className="border-white/10 bg-card/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            {role === 'closer' ? <TrendingUp className="h-5 w-5 text-violet-400" /> : <MessageSquare className="h-5 w-5 text-blue-400" />}
+            {role === 'closer'
+              ? <TrendingUp className="h-5 w-5 text-violet-400" />
+              : <MessageSquare className="h-5 w-5 text-blue-400" />}
             KPI de la semaine
             <span className="text-xs font-normal text-muted-foreground ml-1">{weekLabel}</span>
           </CardTitle>
@@ -208,7 +251,9 @@ export default async function EspaceEquipePage() {
         </h2>
         {recentCalls.length === 0 ? (
           <Card className="border-white/10 bg-card/50">
-            <p className="text-center text-sm text-muted-foreground py-8">Aucun appel enregistré pour l&apos;instant.</p>
+            <p className="text-center text-sm text-muted-foreground py-8">
+              Aucun appel enregistré pour l&apos;instant.
+            </p>
           </Card>
         ) : (
           <div className="space-y-2">
@@ -220,7 +265,9 @@ export default async function EspaceEquipePage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{call.prospect_name ?? 'Prospect'}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(call.call_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {new Date(call.call_date).toLocaleDateString('fr-FR', {
+                          day: 'numeric', month: 'long', year: 'numeric',
+                        })}
                       </p>
                     </div>
                     <Badge variant="outline" className={cn('text-xs flex-shrink-0', cfg.className)}>

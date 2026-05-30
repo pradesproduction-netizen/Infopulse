@@ -152,7 +152,7 @@ function MemberCard({ member, calls }: MemberCardProps) {
 
   async function handleCopyLink() {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
-    await navigator.clipboard.writeText(base + '/espace-equipe')
+    await navigator.clipboard.writeText(`${base}/espace-equipe?member=${member.id}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
