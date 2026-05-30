@@ -31,8 +31,9 @@ export default async function DashboardPage() {
   const { monday, sunday } = getWeekBounds()
   const mondayStr = monday.toISOString().split('T')[0]
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
   const [
     { data: tasks },
@@ -63,15 +64,13 @@ export default async function DashboardPage() {
     supabase.from('payments')
       .select('*, clients(full_name, id)')
       .eq('infopreneur_id', user.id)
-      .eq('status', 'pending'),
+      .eq('status', 'pending')
+      .gte('next_payment_date', monthStart)
+      .lte('next_payment_date', monthEnd)
+      .order('next_payment_date', { ascending: true }),
   ])
 
-  const { data: _testUpcoming, error: _upcomingError } = await supabase
-    .from('payments')
-    .select('*, clients(full_name, id)')
-    .eq('infopreneur_id', user.id)
-    .eq('status', 'pending')
-  console.log('TEST upcomingPayments:', _testUpcoming, _upcomingError)
+  console.log('upcomingPayments final:', upcomingPayments)
 
   const clientIds = clients?.map((c) => c.id) ?? []
   const { data: payments } = clientIds.length > 0
