@@ -85,6 +85,17 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
   const { member: memberIdParam } = await searchParams
   const admin = createAdminClient()
 
+  // Guard: infopreneurs are redirected to their dashboard
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!profile || profile.role === 'infopreneur') {
+    redirect('/dashboard')
+  }
+
   // --- Résolution de l'identité ---
   // 1. Cherche le membre lié AU compte connecté (priorité absolue)
   const ownMember = await findTeamMemberOrNull(user.id, user.email ?? '')
