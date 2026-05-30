@@ -44,6 +44,13 @@ function StatCard({
   )
 }
 
+interface UpcomingPaymentItem {
+  amount: number
+  next_payment_date: string | null
+  clients: { id: string; full_name: string } | null
+  [key: string]: unknown
+}
+
 interface DashboardProspectsWidgetProps {
   infopreneurId: string
   overdueCount: number
@@ -56,6 +63,7 @@ interface DashboardProspectsWidgetProps {
   weekLabel: string
   upcomingTotal: number
   upcomingCount: number
+  upcomingPayments?: UpcomingPaymentItem[]
   children?: React.ReactNode
 }
 
@@ -71,6 +79,7 @@ export function DashboardProspectsWidget({
   weekLabel,
   upcomingTotal,
   upcomingCount,
+  upcomingPayments,
   children,
 }: DashboardProspectsWidgetProps) {
   const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId)
@@ -137,6 +146,7 @@ export function DashboardProspectsWidget({
         type={openPanel}
         infopreneurId={infopreneurId}
         onClose={() => setOpenPanel(null)}
+        upcomingPayments={upcomingPayments}
       />
     </>
   )

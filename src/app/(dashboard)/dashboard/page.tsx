@@ -120,6 +120,7 @@ export default async function DashboardPage() {
         weekLabel={weekLabel}
         upcomingTotal={upcomingTotal}
         upcomingCount={upcomingCount}
+        upcomingPayments={upcomingPayments ?? []}
       >
         <DailyTasks tasks={tasks ?? []} userId={user.id} />
       </DashboardProspectsWidget>

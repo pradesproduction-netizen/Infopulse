@@ -39,13 +39,21 @@ const TITLES: Record<PanelType, string> = {
   relances:  'Relances paiement',
 }
 
+interface UpcomingPaymentServerItem {
+  amount: number
+  next_payment_date: string | null
+  clients: { id: string; full_name: string } | null
+  [key: string]: unknown
+}
+
 interface KpiSlideOverProps {
   type: PanelType | null
   infopreneurId: string
   onClose: () => void
+  upcomingPayments?: UpcomingPaymentServerItem[]
 }
 
-export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps) {
+export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: upcomingPaymentsProp }: KpiSlideOverProps) {
   const open = type !== null
   const [loading, setLoading] = useState(false)
   const [prospects, setProspects] = useState<ProspectItem[]>([])
@@ -128,7 +136,18 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
           setLoading(false)
         })
     } else {
-      // paiements pending ce mois (par next_payment_date)
+      // paiements pending ce mois — utilise le prop server-side si disponible
+      if (upcomingPaymentsProp && upcomingPaymentsProp.length >= 0) {
+        const mapped: PaymentItem[] = upcomingPaymentsProp.map((p) => ({
+          amount: p.amount,
+          next_payment_date: p.next_payment_date ?? '',
+          client: p.clients ? { id: p.clients.id, full_name: p.clients.full_name } : null,
+        }))
+        setPayments(mapped)
+        setLoading(false)
+        return
+      }
+      // fallback fetch client-side
       supabase
         .from('clients')
         .select('id')
@@ -148,7 +167,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose }: KpiSlideOverProps
           setLoading(false)
         })
     }
-  }, [type, infopreneurId])
+  }, [type, infopreneurId, upcomingPaymentsProp])
 
   async function markPaid(id: string) {
     setLoadingPayId(id)
