@@ -47,8 +47,8 @@ function CloserWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
   const signe = kpis.reduce((s, k) => s + k.signe, 0)
   const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte), 0)
   const caCollecte = kpis.reduce((s, k) => s + Number(k.ca_collecte), 0)
-  const totalShowup = r1Showup + r2Showup
-  const tauxClosing = totalShowup > 0 ? Math.round((signe / totalShowup) * 100) : 0
+  const totalCalls = r1Showup + r1Noshow + r2Showup + r2Noshow
+  const tauxClosing = totalCalls > 0 ? Math.round((signe / totalCalls) * 100) : 0
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <KpiTile label="R1 Show-up" value={r1Showup} />
@@ -87,8 +87,8 @@ function CloserMonthKpis({ kpis }: { kpis: DailyKpi[] }) {
   const signe = kpis.reduce((s, k) => s + k.signe, 0)
   const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte), 0)
   const caCollecte = kpis.reduce((s, k) => s + Number(k.ca_collecte), 0)
-  const totalShowup = r1Showup + r2Showup
-  const tauxClosing = totalShowup > 0 ? Math.round((signe / totalShowup) * 100) : 0
+  const totalCalls = r1Showup + r1Noshow + r2Showup + r2Noshow
+  const tauxClosing = totalCalls > 0 ? Math.round((signe / totalCalls) * 100) : 0
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -164,8 +164,8 @@ function CloserTodayCards({ kpi }: { kpi: DailyKpi | null }) {
   const signe = k.signe ?? 0
   const caContracte = Number(k.ca_contracte ?? 0)
   const caCollecte = Number(k.ca_collecte ?? 0)
-  const totalShowup = r1Showup + r2Showup
-  const tauxClosing = totalShowup > 0 ? Math.round((signe / totalShowup) * 100) : 0
+  const totalCalls = r1Showup + r1Noshow + r2Showup + r2Noshow
+  const tauxClosing = totalCalls > 0 ? Math.round((signe / totalCalls) * 100) : 0
   const closingGood = tauxClosing >= 30
 
   return (

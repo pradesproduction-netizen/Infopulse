@@ -84,7 +84,7 @@ function CloserDailyStats({ kpis }: {
   const totalSigned = kpis.reduce((s, k) => s + k.signe, 0)
   const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte), 0)
   const showUpRate = totalCalls > 0 ? Math.round((totalShowup / totalCalls) * 100) : 0
-  const closingRate = totalShowup > 0 ? Math.round((totalSigned / totalShowup) * 100) : 0
+  const closingRate = totalCalls > 0 ? Math.round((totalSigned / totalCalls) * 100) : 0
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

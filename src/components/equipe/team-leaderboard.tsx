@@ -70,7 +70,8 @@ export function TeamLeaderboard({ teamMembers, dailyKpis = [] }: TeamLeaderboard
       const signe = kpis.reduce((s, k) => s + Number(k.signe ?? 0), 0)
       const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte ?? 0), 0)
       const caCollecte = kpis.reduce((s, k) => s + Number(k.ca_collecte ?? 0), 0)
-      const tauxClosing = showup > 0 ? Math.round((signe / showup) * 100) : 0
+      const totalCalls = showup + noshow
+      const tauxClosing = totalCalls > 0 ? Math.round((signe / totalCalls) * 100) : 0
       return { member: m, showup, noshow, signe, caContracte, caCollecte, tauxClosing }
     })
     .sort((a, b) => b.caContracte - a.caContracte)

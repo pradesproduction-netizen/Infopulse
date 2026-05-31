@@ -60,7 +60,7 @@ export default async function DashboardPage() {
       .lte('next_payment_date', monthEnd)
       .order('next_payment_date', { ascending: true }),
     supabase.from('daily_kpis')
-      .select('ca_contracte, ca_collecte, signe, r1_showup, r2_showup')
+      .select('ca_contracte, ca_collecte, signe, r1_showup, r1_noshow, r2_showup, r2_noshow')
       .eq('infopreneur_id', user.id)
       .eq('role', 'closer')
       .gte('date', mondayStr)
@@ -78,9 +78,9 @@ export default async function DashboardPage() {
   const kpiList = weekKpis ?? []
   const caContracte = kpiList.reduce((s, k) => s + Number(k.ca_contracte ?? 0), 0)
   const caCollecte = kpiList.reduce((s, k) => s + Number(k.ca_collecte ?? 0), 0)
-  const totalShowup = kpiList.reduce((s, k) => s + Number(k.r1_showup ?? 0) + Number(k.r2_showup ?? 0), 0)
+  const totalCalls = kpiList.reduce((s, k) => s + Number(k.r1_showup ?? 0) + Number(k.r1_noshow ?? 0) + Number(k.r2_showup ?? 0) + Number(k.r2_noshow ?? 0), 0)
   const totalSigned = kpiList.reduce((s, k) => s + Number(k.signe ?? 0), 0)
-  const closingRate = totalShowup > 0 ? Math.round((totalSigned / totalShowup) * 100) : 0
+  const closingRate = totalCalls > 0 ? Math.round((totalSigned / totalCalls) * 100) : 0
 
   const caContracteTarget = objective?.ca_contracte_target ?? 0
   const caCollecteTarget = objective?.ca_collecte_target ?? 0
