@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { User, CreditCard, Target, Plug, Shield, BookOpen } from 'lucide-react'
+import { User, CreditCard, Target, Plug, Shield, BookOpen, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ElementType } from 'react'
 import { ProfileSection } from './profile-section'
@@ -9,10 +9,11 @@ import { SubscriptionSection } from './subscription-section'
 import { ObjectivesSection } from './objectives-section'
 import { ProgramsSection } from './programs-section'
 import { IntegrationsSection } from './integrations-section'
+import { ResourcesSection } from './resources-section'
 import { SecuritySection } from './security-section'
 import type { Profile, Objective, Program } from '@/lib/types'
 
-type Tab = 'profil' | 'abonnement' | 'objectifs' | 'programmes' | 'integrations' | 'securite'
+type Tab = 'profil' | 'abonnement' | 'objectifs' | 'programmes' | 'ressources' | 'integrations' | 'securite'
 
 interface CompteLayoutProps {
   profile: Profile | null
@@ -28,6 +29,7 @@ const TABS: { id: Tab; label: string; icon: ElementType }[] = [
   { id: 'abonnement', label: 'Abonnement', icon: CreditCard },
   { id: 'objectifs', label: 'Objectifs', icon: Target },
   { id: 'programmes', label: 'Programmes', icon: BookOpen },
+  { id: 'ressources', label: 'Ressources', icon: FileText },
   { id: 'integrations', label: 'Intégrations', icon: Plug },
   { id: 'securite', label: 'Sécurité', icon: Shield },
 ]
@@ -62,6 +64,7 @@ export function CompteLayout({ profile, objective, programs, userEmail, userId, 
         {activeTab === 'abonnement' && <SubscriptionSection currentPlan={subscriptionPlan} />}
         {activeTab === 'objectifs' && <ObjectivesSection objective={objective} userId={userId} />}
         {activeTab === 'programmes' && <ProgramsSection programs={programs} subscriptionPlan={profile?.subscription_plan ?? null} />}
+        {activeTab === 'ressources' && <ResourcesSection userId={userId} />}
         {activeTab === 'integrations' && <IntegrationsSection />}
         {activeTab === 'securite' && <SecuritySection userEmail={userEmail} />}
       </div>

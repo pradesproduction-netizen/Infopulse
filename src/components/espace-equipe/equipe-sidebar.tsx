@@ -18,7 +18,7 @@ export function EquipeSidebar({ memberName, memberRole }: EquipeSidebarProps) {
   const navigation = [
     { name: 'Mon espace', href: '/espace-equipe', icon: Home, exact: true },
     { name: 'Mon pipeline', href: '/espace-equipe/pipeline', icon: Kanban, exact: false },
-    ...(memberRole === 'closer' ? [{ name: 'Ressources', href: '/espace-equipe/ressources', icon: LinkIcon, exact: false }] : []),
+    { name: 'Ressources', href: '/espace-equipe/ressources', icon: LinkIcon, exact: false },
     { name: 'Mon profil', href: '/espace-equipe/profil', icon: User, exact: false },
   ]
 

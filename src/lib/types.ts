@@ -169,6 +169,15 @@ export interface DailyKpi {
   created_at: string
 }
 
+export interface SopDocument {
+  id: string
+  infopreneur_id: string
+  type: 'setter' | 'closer'
+  file_name: string
+  storage_path: string
+  created_at: string
+}
+
 export interface PaymentLink {
   id: string
   infopreneur_id: string
