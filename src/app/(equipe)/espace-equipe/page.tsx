@@ -40,17 +40,25 @@ function KpiTile({ label, value, accent, sub }: { label: string; value: string |
 }
 
 function CloserWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
-  const totalCalls = kpis.reduce((s, k) => s + k.r1_showup + k.r1_noshow + k.r2_showup + k.r2_noshow, 0)
-  const totalShowup = kpis.reduce((s, k) => s + k.r1_showup + k.r2_showup, 0)
-  const totalSigned = kpis.reduce((s, k) => s + k.signe, 0)
+  const r1Showup = kpis.reduce((s, k) => s + k.r1_showup, 0)
+  const r1Noshow = kpis.reduce((s, k) => s + k.r1_noshow, 0)
+  const r2Showup = kpis.reduce((s, k) => s + k.r2_showup, 0)
+  const r2Noshow = kpis.reduce((s, k) => s + k.r2_noshow, 0)
+  const signe = kpis.reduce((s, k) => s + k.signe, 0)
   const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte), 0)
-  const showUpRate = totalCalls > 0 ? Math.round((totalShowup / totalCalls) * 100) : 0
+  const caCollecte = kpis.reduce((s, k) => s + Number(k.ca_collecte), 0)
+  const totalShowup = r1Showup + r2Showup
+  const tauxClosing = totalShowup > 0 ? Math.round((signe / totalShowup) * 100) : 0
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <KpiTile label="Appels" value={totalCalls} />
-      <KpiTile label="Show-up" value={`${showUpRate}%`} />
-      <KpiTile label="Signés" value={totalSigned} />
+      <KpiTile label="R1 Show-up" value={r1Showup} />
+      <KpiTile label="R1 No-show" value={r1Noshow} />
+      <KpiTile label="R2 Show-up" value={r2Showup} />
+      <KpiTile label="R2 No-show" value={r2Noshow} />
+      <KpiTile label="Signés" value={signe} />
       <KpiTile label="CA contracté" value={caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '0 €'} />
+      <KpiTile label="CA collecté" value={caCollecte > 0 ? `${caCollecte.toLocaleString('fr-FR')} €` : '0 €'} />
+      <KpiTile label="Taux de closing" value={`${tauxClosing}%`} />
     </div>
   )
 }
@@ -61,12 +69,11 @@ function SetterWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
   const totalFollowups = kpis.reduce((s, k) => s + k.followup, 0)
   const totalCallsBooked = kpis.reduce((s, k) => s + k.calls_bookes, 0)
   const tauxRep = totalMessages > 0 ? Math.round((totalReplies / totalMessages) * 100) : 0
-  const tauxRepAccent = tauxRep >= 50 ? 'text-green-400' : tauxRep >= 30 ? 'text-orange-400' : 'text-red-400'
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <KpiTile label="Messages" value={totalMessages} />
-      <KpiTile label="Taux de réponses" value={`${tauxRep}%`} accent={tauxRepAccent} sub={`${totalReplies} rép. / ${totalMessages} msg`} />
-      <KpiTile label="Follow-ups" value={totalFollowups} />
+      <KpiTile label="Messages envoyés" value={totalMessages} />
+      <KpiTile label="Taux de réponses" value={`${tauxRep}%`} sub={`${totalReplies} rép. / ${totalMessages} msg`} />
+      <KpiTile label="Follow-up" value={totalFollowups} />
       <KpiTile label="Calls bookés" value={totalCallsBooked} />
     </div>
   )
@@ -89,10 +96,10 @@ function CloserMonthKpis({ kpis }: { kpis: DailyKpi[] }) {
       <KpiTile label="R1 No-show" value={r1Noshow} />
       <KpiTile label="R2 Show-up" value={r2Showup} />
       <KpiTile label="R2 No-show" value={r2Noshow} />
-      <KpiTile label="Signés" value={signe} accent="text-green-400" />
-      <KpiTile label="CA contracté" value={caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '0 €'} accent="text-violet-400" />
-      <KpiTile label="CA collecté" value={caCollecte > 0 ? `${caCollecte.toLocaleString('fr-FR')} €` : '0 €'} accent="text-emerald-400" />
-      <KpiTile label="Taux de closing" value={`${tauxClosing}%`} accent={tauxClosing >= 30 ? 'text-green-400' : 'text-orange-400'} />
+      <KpiTile label="Signés" value={signe} />
+      <KpiTile label="CA contracté" value={caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '0 €'} />
+      <KpiTile label="CA collecté" value={caCollecte > 0 ? `${caCollecte.toLocaleString('fr-FR')} €` : '0 €'} />
+      <KpiTile label="Taux de closing" value={`${tauxClosing}%`} />
     </div>
   )
 }
@@ -187,14 +194,13 @@ function SetterMonthKpis({ kpis }: { kpis: DailyKpi[] }) {
   const callsBookes = kpis.reduce((s, k) => s + k.calls_bookes, 0)
   const followup = kpis.reduce((s, k) => s + k.followup, 0)
   const tauxRep = messages > 0 ? Math.round((reponses / messages) * 100) : 0
-  const tauxRepAccent = tauxRep >= 50 ? 'text-green-400' : tauxRep >= 30 ? 'text-orange-400' : 'text-red-400'
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <KpiTile label="Messages envoyés" value={messages} />
-      <KpiTile label="Taux de réponses" value={`${tauxRep}%`} accent={tauxRepAccent} sub={`${reponses} rép. / ${messages} msg`} />
-      <KpiTile label="Calls bookés" value={callsBookes} accent="text-violet-400" />
+      <KpiTile label="Taux de réponses" value={`${tauxRep}%`} sub={`${reponses} rép. / ${messages} msg`} />
       <KpiTile label="Follow-up" value={followup} />
+      <KpiTile label="Calls bookés" value={callsBookes} />
     </div>
   )
 }
