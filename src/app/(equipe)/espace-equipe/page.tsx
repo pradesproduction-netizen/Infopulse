@@ -2,21 +2,13 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { findTeamMemberOrNull } from '@/lib/get-team-member'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { MemberKpiCards } from '@/components/equipe/member-kpi-cards'
 import { DailyKpiCalendar } from '@/components/equipe/daily-kpi-calendar'
 import { AutoRefresh } from '@/components/ui/auto-refresh'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { PhoneCall, Calendar, TrendingUp, BarChart2, MessageSquare } from 'lucide-react'
+import { TrendingUp, BarChart2, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Call, Prospect, DailyKpi, TeamMember } from '@/lib/types'
-
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  scheduled: { label: 'Planifié', className: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
-  completed: { label: 'Terminé', className: 'bg-green-500/10 text-green-300 border-green-500/30' },
-  cancelled: { label: 'Annulé', className: 'bg-gray-500/10 text-gray-400 border-gray-500/30' },
-  no_show: { label: 'No-show', className: 'bg-orange-500/10 text-orange-300 border-orange-500/30' },
-}
+import type { DailyKpi, TeamMember } from '@/lib/types'
 
 interface PageProps {
   searchParams: Promise<{ member?: string }>
@@ -37,10 +29,10 @@ function getWeekBounds() {
   return { monday, sunday }
 }
 
-function KpiTile({ label, value }: { label: string; value: string | number }) {
+function KpiTile({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
     <div className="bg-white/5 rounded-lg p-3 text-center">
-      <p className="text-lg font-bold">{value}</p>
+      <p className={cn('text-lg font-bold', accent ?? '')}>{value}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
     </div>
   )
@@ -73,6 +65,47 @@ function SetterWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
       <KpiTile label="Réponses" value={totalReplies} />
       <KpiTile label="Follow-ups" value={totalFollowups} />
       <KpiTile label="Calls bookés" value={totalCallsBooked} />
+    </div>
+  )
+}
+
+function CloserMonthKpis({ kpis }: { kpis: DailyKpi[] }) {
+  const r1Showup = kpis.reduce((s, k) => s + k.r1_showup, 0)
+  const r1Noshow = kpis.reduce((s, k) => s + k.r1_noshow, 0)
+  const r2Showup = kpis.reduce((s, k) => s + k.r2_showup, 0)
+  const r2Noshow = kpis.reduce((s, k) => s + k.r2_noshow, 0)
+  const signe = kpis.reduce((s, k) => s + k.signe, 0)
+  const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte), 0)
+  const caCollecte = kpis.reduce((s, k) => s + Number(k.ca_collecte), 0)
+  const totalShowup = r1Showup + r2Showup
+  const tauxClosing = totalShowup > 0 ? Math.round((signe / totalShowup) * 100) : 0
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <KpiTile label="R1 Show-up" value={r1Showup} />
+      <KpiTile label="R1 No-show" value={r1Noshow} />
+      <KpiTile label="R2 Show-up" value={r2Showup} />
+      <KpiTile label="R2 No-show" value={r2Noshow} />
+      <KpiTile label="Signés" value={signe} accent="text-green-400" />
+      <KpiTile label="CA contracté" value={caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '0 €'} accent="text-violet-400" />
+      <KpiTile label="CA collecté" value={caCollecte > 0 ? `${caCollecte.toLocaleString('fr-FR')} €` : '0 €'} accent="text-emerald-400" />
+      <KpiTile label="Taux de closing" value={`${tauxClosing}%`} accent={tauxClosing >= 30 ? 'text-green-400' : 'text-orange-400'} />
+    </div>
+  )
+}
+
+function SetterMonthKpis({ kpis }: { kpis: DailyKpi[] }) {
+  const messages = kpis.reduce((s, k) => s + k.messages_envoyes, 0)
+  const reponses = kpis.reduce((s, k) => s + k.reponses_recues, 0)
+  const callsBookes = kpis.reduce((s, k) => s + k.calls_bookes, 0)
+  const followup = kpis.reduce((s, k) => s + k.followup, 0)
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <KpiTile label="Messages envoyés" value={messages} />
+      <KpiTile label="Réponses reçues" value={reponses} />
+      <KpiTile label="Calls bookés" value={callsBookes} accent="text-violet-400" />
+      <KpiTile label="Follow-up" value={followup} />
     </div>
   )
 }
@@ -116,11 +149,8 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
       member = targetMember as TeamMember
       isReadOnly = true
     } else if (!ownMember) {
-      // Ni membre ni infopreneur de ce membre
       redirect('/login')
     }
-    // Si ownMember existe mais que le param pointe ailleurs → on ignore le param
-    // et on affiche les KPI du membre connecté (déjà dans `member`)
   }
 
   if (!member) {
@@ -147,27 +177,24 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
   const mondayStr = toDateStr(monday)
   const sundayStr = toDateStr(sunday)
 
-  const [{ data: calls }, { data: prospects }, { data: monthKpis }, { data: weekKpis }] = await Promise.all([
-    admin.from('calls').select('*').eq('team_member_id', member.id).order('call_date', { ascending: false }),
-    admin.from('prospects').select('*').eq('team_member_id', member.id),
-    admin.from('daily_kpis').select('date').eq('team_member_id', member.id).gte('date', monthStart).lte('date', monthEnd),
+  const [{ data: monthKpisRaw }, { data: weekKpis }] = await Promise.all([
+    admin.from('daily_kpis').select('*').eq('team_member_id', member.id).gte('date', monthStart).lte('date', monthEnd),
     admin.from('daily_kpis').select('*').eq('team_member_id', member.id).gte('date', mondayStr).lte('date', sundayStr),
   ])
 
-  const allCalls = (calls ?? []) as Call[]
-  const allProspects = (prospects ?? []) as Prospect[]
-  const filledDates = (monthKpis ?? []).map((k: { date: string }) => k.date)
+  const monthKpiList = (monthKpisRaw ?? []) as DailyKpi[]
+  const filledDates = monthKpiList.map((k) => k.date)
   const todayFilled = filledDates.includes(today)
   const weekKpiList = (weekKpis ?? []) as DailyKpi[]
   const hasWeekData = weekKpiList.length > 0
+  const hasMonthData = monthKpiList.length > 0
 
-  const scheduledCalls = allCalls.filter((c) => c.status === 'scheduled')
-  const recentCalls = allCalls.slice(0, 10)
   const firstName = member.full_name.split(' ')[0]
   const role = member.role as 'closer' | 'setter'
 
   const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
   const weekLabel = `${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${sunday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
+  const monthLabel = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
 
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
@@ -213,6 +240,32 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
         readOnly={isReadOnly}
       />
 
+      {/* KPI du mois */}
+      <Card className="border-white/10 bg-card/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            {role === 'closer'
+              ? <TrendingUp className="h-5 w-5 text-violet-400" />
+              : <MessageSquare className="h-5 w-5 text-blue-400" />}
+            KPI du mois
+            <span className="text-xs font-normal text-muted-foreground ml-1 capitalize">{monthLabel}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!hasMonthData ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              {isReadOnly
+                ? 'Aucune donnée ce mois-ci.'
+                : 'Aucune donnée ce mois-ci — remplis tes KPI du jour depuis le calendrier.'}
+            </p>
+          ) : role === 'closer' ? (
+            <CloserMonthKpis kpis={monthKpiList} />
+          ) : (
+            <SetterMonthKpis kpis={monthKpiList} />
+          )}
+        </CardContent>
+      </Card>
+
       {/* Résumé semaine en cours */}
       <Card className="border-white/10 bg-card/50">
         <CardHeader className="pb-3">
@@ -238,63 +291,6 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
           )}
         </CardContent>
       </Card>
-
-      {/* KPI cards prospects */}
-      <MemberKpiCards initialProspects={allProspects} teamMemberId={member.id} />
-
-      {/* Appels planifiés */}
-      {scheduledCalls.length > 0 && (
-        <Card className="border-violet-500/30 bg-violet-500/[0.06]">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-violet-400 flex-shrink-0" />
-            <p className="text-sm">
-              <span className="font-semibold text-violet-300">
-                {scheduledCalls.length} appel{scheduledCalls.length !== 1 ? 's' : ''} planifié{scheduledCalls.length !== 1 ? 's' : ''}
-              </span>
-              <span className="text-muted-foreground"> à venir</span>
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Derniers appels */}
-      <div className="space-y-3">
-        <h2 className="font-semibold flex items-center gap-2">
-          <PhoneCall className="h-4 w-4 text-muted-foreground" />
-          Derniers appels
-          <span className="text-sm font-normal text-muted-foreground">({allCalls.length} total)</span>
-        </h2>
-        {recentCalls.length === 0 ? (
-          <Card className="border-white/10 bg-card/50">
-            <p className="text-center text-sm text-muted-foreground py-8">
-              Aucun appel enregistré pour l&apos;instant.
-            </p>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {recentCalls.map((call) => {
-              const cfg = STATUS_CONFIG[call.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.scheduled
-              return (
-                <Card key={call.id} className="border-white/10 bg-card/50 hover:border-white/20 transition-colors">
-                  <CardContent className="p-4 flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{call.prospect_name ?? 'Prospect'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(call.call_date).toLocaleDateString('fr-FR', {
-                          day: 'numeric', month: 'long', year: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className={cn('text-xs flex-shrink-0', cfg.className)}>
-                      {cfg.label}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        )}
-      </div>
     </div>
   )
 }
