@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { DailyTasks } from '@/components/dashboard/daily-tasks'
 import { DashboardProspectsWidget } from '@/components/dashboard/dashboard-prospects-widget'
 import type { Prospect, PaymentToChase } from '@/lib/types'
 
@@ -41,7 +40,6 @@ export default async function DashboardPage() {
   const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
   const [
-    { data: tasks },
     { data: clients },
     { data: prospects },
     { data: objective },
@@ -49,11 +47,6 @@ export default async function DashboardPage() {
     { data: upcomingPayments },
     { data: weekKpis },
   ] = await Promise.all([
-    supabase.from('daily_tasks').select('*')
-      .eq('infopreneur_id', user.id)
-      .gte('generated_at', `${today}T00:00:00.000Z`)
-      .lte('generated_at', `${today}T23:59:59.999Z`)
-      .order('generated_at'),
     supabase.from('clients').select('id').eq('infopreneur_id', user.id),
     supabase.from('prospects').select('*').eq('infopreneur_id', user.id),
     supabase.from('objectives').select('*')
@@ -138,9 +131,8 @@ export default async function DashboardPage() {
         upcomingTotal={upcomingTotal}
         upcomingCount={upcomingCount}
         upcomingPayments={upcomingPayments ?? []}
-      >
-        <DailyTasks tasks={tasks ?? []} userId={user.id} />
-      </DashboardProspectsWidget>
+      />
+
     </div>
   )
 }
