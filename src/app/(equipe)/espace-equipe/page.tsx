@@ -29,11 +29,12 @@ function getWeekBounds() {
   return { monday, sunday }
 }
 
-function KpiTile({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
+function KpiTile({ label, value, accent, sub }: { label: string; value: string | number; accent?: string; sub?: string }) {
   return (
     <div className="bg-white/5 rounded-lg p-3 text-center">
       <p className={cn('text-lg font-bold', accent ?? '')}>{value}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+      {sub && <p className="text-xs text-muted-foreground/50 mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -59,10 +60,12 @@ function SetterWeekSummary({ kpis }: { kpis: DailyKpi[] }) {
   const totalReplies = kpis.reduce((s, k) => s + k.reponses_recues, 0)
   const totalFollowups = kpis.reduce((s, k) => s + k.followup, 0)
   const totalCallsBooked = kpis.reduce((s, k) => s + k.calls_bookes, 0)
+  const tauxRep = totalMessages > 0 ? Math.round((totalReplies / totalMessages) * 100) : 0
+  const tauxRepAccent = tauxRep >= 50 ? 'text-green-400' : tauxRep >= 30 ? 'text-orange-400' : 'text-red-400'
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <KpiTile label="Messages" value={totalMessages} />
-      <KpiTile label="Réponses" value={totalReplies} />
+      <KpiTile label="Taux de réponses" value={`${tauxRep}%`} accent={tauxRepAccent} sub={`${totalReplies} rép. / ${totalMessages} msg`} />
       <KpiTile label="Follow-ups" value={totalFollowups} />
       <KpiTile label="Calls bookés" value={totalCallsBooked} />
     </div>
@@ -100,27 +103,45 @@ function ColorCard({
   bg,
   border,
   text,
+  sub,
 }: {
   label: string
   value: string | number
   bg: string
   border: string
   text: string
+  sub?: string
 }) {
   return (
     <div className={cn('rounded-xl p-4 text-center border', bg, border)}>
       <p className={cn('text-2xl font-bold', text)}>{value}</p>
       <p className={cn('text-xs mt-1 opacity-75', text)}>{label}</p>
+      {sub && <p className={cn('text-xs mt-0.5 opacity-50', text)}>{sub}</p>}
     </div>
   )
 }
 
 function SetterTodayCards({ kpi }: { kpi: DailyKpi | null }) {
-  const k = kpi ?? { messages_envoyes: 0, reponses_recues: 0, calls_bookes: 0, followup: 0 } as Partial<DailyKpi>
+  const k = kpi ?? {} as Partial<DailyKpi>
+  const messages = k.messages_envoyes ?? 0
+  const reponses = k.reponses_recues ?? 0
+  const tauxRep = messages > 0 ? Math.round((reponses / messages) * 100) : 0
+  const tauxRepColor = tauxRep >= 50
+    ? { bg: 'bg-green-500/15', border: 'border-green-500/30', text: 'text-green-300' }
+    : tauxRep >= 30
+    ? { bg: 'bg-orange-500/15', border: 'border-orange-500/30', text: 'text-orange-300' }
+    : { bg: 'bg-red-500/15', border: 'border-red-500/30', text: 'text-red-300' }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <ColorCard label="Messages envoyés" value={k.messages_envoyes ?? 0} bg="bg-blue-500/15" border="border-blue-500/30" text="text-blue-300" />
-      <ColorCard label="Réponses reçues" value={k.reponses_recues ?? 0} bg="bg-green-500/15" border="border-green-500/30" text="text-green-300" />
+      <ColorCard label="Messages envoyés" value={messages} bg="bg-blue-500/15" border="border-blue-500/30" text="text-blue-300" />
+      <ColorCard
+        label="Taux de réponses"
+        value={`${tauxRep}%`}
+        sub={`${reponses} rép. / ${messages} msg`}
+        bg={tauxRepColor.bg}
+        border={tauxRepColor.border}
+        text={tauxRepColor.text}
+      />
       <ColorCard label="Calls bookés" value={k.calls_bookes ?? 0} bg="bg-violet-500/15" border="border-violet-500/30" text="text-violet-300" />
       <ColorCard label="Follow-up" value={k.followup ?? 0} bg="bg-orange-500/15" border="border-orange-500/30" text="text-orange-300" />
     </div>
@@ -165,11 +186,13 @@ function SetterMonthKpis({ kpis }: { kpis: DailyKpi[] }) {
   const reponses = kpis.reduce((s, k) => s + k.reponses_recues, 0)
   const callsBookes = kpis.reduce((s, k) => s + k.calls_bookes, 0)
   const followup = kpis.reduce((s, k) => s + k.followup, 0)
+  const tauxRep = messages > 0 ? Math.round((reponses / messages) * 100) : 0
+  const tauxRepAccent = tauxRep >= 50 ? 'text-green-400' : tauxRep >= 30 ? 'text-orange-400' : 'text-red-400'
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <KpiTile label="Messages envoyés" value={messages} />
-      <KpiTile label="Réponses reçues" value={reponses} />
+      <KpiTile label="Taux de réponses" value={`${tauxRep}%`} accent={tauxRepAccent} sub={`${reponses} rép. / ${messages} msg`} />
       <KpiTile label="Calls bookés" value={callsBookes} accent="text-violet-400" />
       <KpiTile label="Follow-up" value={followup} />
     </div>
