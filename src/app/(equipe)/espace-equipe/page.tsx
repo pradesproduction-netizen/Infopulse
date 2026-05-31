@@ -149,8 +149,8 @@ function SetterTodayCards({ kpi }: { kpi: DailyKpi | null }) {
         border={tauxRepColor.border}
         text={tauxRepColor.text}
       />
-      <ColorCard label="Calls bookés" value={k.calls_bookes ?? 0} bg="bg-violet-500/15" border="border-violet-500/30" text="text-violet-300" />
       <ColorCard label="Follow-up" value={k.followup ?? 0} bg="bg-orange-500/15" border="border-orange-500/30" text="text-orange-300" />
+      <ColorCard label="Calls bookés" value={k.calls_bookes ?? 0} bg="bg-violet-500/15" border="border-violet-500/30" text="text-violet-300" />
     </div>
   )
 }
