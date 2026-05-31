@@ -6,7 +6,7 @@ import { DailyKpiCalendar } from '@/components/equipe/daily-kpi-calendar'
 import { AutoRefresh } from '@/components/ui/auto-refresh'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, BarChart2, MessageSquare } from 'lucide-react'
+import { TrendingUp, BarChart2, MessageSquare, CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DailyKpi, TeamMember } from '@/lib/types'
 
@@ -90,6 +90,72 @@ function CloserMonthKpis({ kpis }: { kpis: DailyKpi[] }) {
       <KpiTile label="CA contracté" value={caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '0 €'} accent="text-violet-400" />
       <KpiTile label="CA collecté" value={caCollecte > 0 ? `${caCollecte.toLocaleString('fr-FR')} €` : '0 €'} accent="text-emerald-400" />
       <KpiTile label="Taux de closing" value={`${tauxClosing}%`} accent={tauxClosing >= 30 ? 'text-green-400' : 'text-orange-400'} />
+    </div>
+  )
+}
+
+function ColorCard({
+  label,
+  value,
+  bg,
+  border,
+  text,
+}: {
+  label: string
+  value: string | number
+  bg: string
+  border: string
+  text: string
+}) {
+  return (
+    <div className={cn('rounded-xl p-4 text-center border', bg, border)}>
+      <p className={cn('text-2xl font-bold', text)}>{value}</p>
+      <p className={cn('text-xs mt-1 opacity-75', text)}>{label}</p>
+    </div>
+  )
+}
+
+function SetterTodayCards({ kpi }: { kpi: DailyKpi | null }) {
+  const k = kpi ?? { messages_envoyes: 0, reponses_recues: 0, calls_bookes: 0, followup: 0 } as Partial<DailyKpi>
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <ColorCard label="Messages envoyés" value={k.messages_envoyes ?? 0} bg="bg-blue-500/15" border="border-blue-500/30" text="text-blue-300" />
+      <ColorCard label="Réponses reçues" value={k.reponses_recues ?? 0} bg="bg-green-500/15" border="border-green-500/30" text="text-green-300" />
+      <ColorCard label="Calls bookés" value={k.calls_bookes ?? 0} bg="bg-violet-500/15" border="border-violet-500/30" text="text-violet-300" />
+      <ColorCard label="Follow-up" value={k.followup ?? 0} bg="bg-orange-500/15" border="border-orange-500/30" text="text-orange-300" />
+    </div>
+  )
+}
+
+function CloserTodayCards({ kpi }: { kpi: DailyKpi | null }) {
+  const k = kpi ?? {} as Partial<DailyKpi>
+  const r1Showup = k.r1_showup ?? 0
+  const r1Noshow = k.r1_noshow ?? 0
+  const r2Showup = k.r2_showup ?? 0
+  const r2Noshow = k.r2_noshow ?? 0
+  const signe = k.signe ?? 0
+  const caContracte = Number(k.ca_contracte ?? 0)
+  const caCollecte = Number(k.ca_collecte ?? 0)
+  const totalShowup = r1Showup + r2Showup
+  const tauxClosing = totalShowup > 0 ? Math.round((signe / totalShowup) * 100) : 0
+  const closingGood = tauxClosing >= 30
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <ColorCard label="R1 Show-up" value={r1Showup} bg="bg-green-500/15" border="border-green-500/30" text="text-green-300" />
+      <ColorCard label="R1 No-show" value={r1Noshow} bg="bg-red-500/15" border="border-red-500/30" text="text-red-300" />
+      <ColorCard label="R2 Show-up" value={r2Showup} bg="bg-green-500/15" border="border-green-500/30" text="text-green-300" />
+      <ColorCard label="R2 No-show" value={r2Noshow} bg="bg-red-500/15" border="border-red-500/30" text="text-red-300" />
+      <ColorCard label="Signés" value={signe} bg="bg-violet-500/15" border="border-violet-500/30" text="text-violet-300" />
+      <ColorCard label="CA contracté" value={caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '0 €'} bg="bg-blue-500/15" border="border-blue-500/30" text="text-blue-300" />
+      <ColorCard label="CA collecté" value={caCollecte > 0 ? `${caCollecte.toLocaleString('fr-FR')} €` : '0 €'} bg="bg-emerald-500/15" border="border-emerald-500/30" text="text-emerald-300" />
+      <ColorCard
+        label="Taux de closing"
+        value={`${tauxClosing}%`}
+        bg={closingGood ? 'bg-green-500/15' : 'bg-orange-500/15'}
+        border={closingGood ? 'border-green-500/30' : 'border-orange-500/30'}
+        text={closingGood ? 'text-green-300' : 'text-orange-300'}
+      />
     </div>
   )
 }
@@ -185,6 +251,7 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
   const monthKpiList = (monthKpisRaw ?? []) as DailyKpi[]
   const filledDates = monthKpiList.map((k) => k.date)
   const todayFilled = filledDates.includes(today)
+  const todayKpi = monthKpiList.find((k) => k.date === today) ?? null
   const weekKpiList = (weekKpis ?? []) as DailyKpi[]
   const hasWeekData = weekKpiList.length > 0
   const hasMonthData = monthKpiList.length > 0
@@ -288,6 +355,24 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
             <CloserWeekSummary kpis={weekKpiList} />
           ) : (
             <SetterWeekSummary kpis={weekKpiList} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* KPI du jour */}
+      <Card className="border-white/10 bg-card/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-muted-foreground" />
+            KPI du jour
+            <span className="text-xs font-normal text-muted-foreground ml-1 capitalize">{dateStr}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {role === 'closer' ? (
+            <CloserTodayCards kpi={todayKpi} />
+          ) : (
+            <SetterTodayCards kpi={todayKpi} />
           )}
         </CardContent>
       </Card>
