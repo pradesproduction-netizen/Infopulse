@@ -4,65 +4,52 @@ import { Progress } from '@/components/ui/progress'
 import { Sparkles, TrendingUp, AlertTriangle, FileDown, ArrowRight } from 'lucide-react'
 
 interface WeeklyRecapProps {
-  caWeek: number
-  caTarget: number
+  caContracte: number
+  caContracteTarget: number
+  caCollecte: number
+  caCollecteTarget: number
   closingRate: number
   closingRateTarget: number
-  showUpRate: number
-  showUpRateTarget: number
   weekLabel: string
 }
 
 export function WeeklyRecap({
-  caWeek,
-  caTarget,
+  caContracte,
+  caContracteTarget,
+  caCollecte,
+  caCollecteTarget,
   closingRate,
   closingRateTarget,
-  showUpRate,
-  showUpRateTarget,
   weekLabel,
 }: WeeklyRecapProps) {
-  const caProgress = caTarget > 0 ? Math.min(100, Math.round((caWeek / caTarget) * 100)) : 0
+  const contracteProgress = caContracteTarget > 0 ? Math.min(100, Math.round((caContracte / caContracteTarget) * 100)) : 0
+  const collecteProgress = caCollecteTarget > 0 ? Math.min(100, Math.round((caCollecte / caCollecteTarget) * 100)) : 0
   const closingProgress = closingRateTarget > 0 ? Math.min(100, Math.round((closingRate / closingRateTarget) * 100)) : 0
-  const showUpProgress = showUpRateTarget > 0 ? Math.min(100, Math.round((showUpRate / showUpRateTarget) * 100)) : 0
-
-  const score = Math.round((caProgress + closingProgress + showUpProgress) / 3)
 
   const positives: string[] = []
   const improvements: string[] = []
 
-  if (caProgress >= 80) positives.push(`CA à ${caProgress}% de l'objectif hebdomadaire`)
-  else improvements.push(`CA à ${caProgress}% de l'objectif (${caWeek.toLocaleString('fr-FR')} € / ${caTarget.toLocaleString('fr-FR')} €)`)
+  if (contracteProgress >= 80) positives.push(`CA contracté à ${contracteProgress}% de l'objectif`)
+  else improvements.push(`CA contracté : ${caContracte.toLocaleString('fr-FR')} € / ${caContracteTarget.toLocaleString('fr-FR')} € (${contracteProgress}%)`)
+
+  if (collecteProgress >= 80) positives.push(`CA collecté à ${collecteProgress}% de l'objectif`)
+  else improvements.push(`CA collecté : ${caCollecte.toLocaleString('fr-FR')} € / ${caCollecteTarget.toLocaleString('fr-FR')} € (${collecteProgress}%)`)
 
   if (closingProgress >= 80) positives.push(`Taux de closing à ${closingRate}% (objectif ${closingRateTarget}%)`)
   else improvements.push(`Taux de closing à ${closingRate}% — objectif ${closingRateTarget}%`)
 
-  if (showUpProgress >= 80) positives.push(`Show-up rate à ${showUpRate}% (objectif ${showUpRateTarget}%)`)
-  else improvements.push(`Show-up rate à ${showUpRate}% — objectif ${showUpRateTarget}%`)
-
-  if (positives.length === 0 && caTarget === 0) {
-    positives.push('Définis tes objectifs dans Compte → Objectifs pour débloquer le score')
+  if (caContracteTarget === 0 && caCollecteTarget === 0) {
+    positives.length = 0
+    improvements.length = 0
+    positives.push('Définis tes objectifs dans Compte → Objectifs pour débloquer le suivi')
   }
 
   return (
     <Card className="border-white/10 bg-gradient-to-br from-violet-500/5 to-green-500/5 backdrop-blur-xl">
       <CardHeader>
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              📊 Bilan hebdomadaire
-            </CardTitle>
-            <CardDescription className="mt-1">
-              {weekLabel}
-            </CardDescription>
-          </div>
-
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground mb-1">Score de performance</div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-green-400 bg-clip-text text-transparent">
-              {caTarget > 0 ? `${score}/100` : '—/100'}
-            </div>
-          </div>
+        <div>
+          <CardTitle>Bilan hebdomadaire</CardTitle>
+          <CardDescription className="mt-1">{weekLabel}</CardDescription>
         </div>
       </CardHeader>
 
@@ -70,32 +57,32 @@ export function WeeklyRecap({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">CA réalisé</span>
+              <span className="text-muted-foreground">CA contracté</span>
               <span className="font-medium">
-                {caWeek.toLocaleString('fr-FR')} € {caTarget > 0 ? `/ ${caTarget.toLocaleString('fr-FR')} €` : ''}
+                {caContracte.toLocaleString('fr-FR')} €{caContracteTarget > 0 ? ` / ${caContracteTarget.toLocaleString('fr-FR')} €` : ''}
               </span>
             </div>
-            <Progress value={caProgress} className="h-2" />
+            <Progress value={contracteProgress} className="h-2" />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Taux closing</span>
+              <span className="text-muted-foreground">CA collecté</span>
               <span className="font-medium">
-                {closingRate}% {closingRateTarget > 0 ? `/ ${closingRateTarget}%` : ''}
+                {caCollecte.toLocaleString('fr-FR')} €{caCollecteTarget > 0 ? ` / ${caCollecteTarget.toLocaleString('fr-FR')} €` : ''}
+              </span>
+            </div>
+            <Progress value={collecteProgress} className="h-2" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Taux de closing</span>
+              <span className="font-medium">
+                {closingRate}%{closingRateTarget > 0 ? ` / ${closingRateTarget}%` : ''}
               </span>
             </div>
             <Progress value={closingProgress} className="h-2" />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Show-up rate</span>
-              <span className="font-medium">
-                {showUpRate}% {showUpRateTarget > 0 ? `/ ${showUpRateTarget}%` : ''}
-              </span>
-            </div>
-            <Progress value={showUpProgress} className="h-2" />
           </div>
         </div>
 

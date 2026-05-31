@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Target, Euro, TrendingUp, UserCheck, Loader2 } from 'lucide-react'
+import { Target, Euro, TrendingUp, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Objective } from '@/lib/types'
 import type { ElementType } from 'react'
@@ -17,16 +17,16 @@ interface ObjectivesSectionProps {
 }
 
 const FIELDS: {
-  key: keyof Pick<Objective, 'revenue_target' | 'closing_rate_target' | 'show_up_rate_target'>
+  key: keyof Pick<Objective, 'ca_contracte_target' | 'ca_collecte_target' | 'closing_rate_target'>
   label: string
   icon: ElementType
   placeholder: string
   suffix: string
   max?: number
 }[] = [
-  { key: 'revenue_target', label: 'CA mensuel cible', icon: Euro, placeholder: '10000', suffix: '€' },
+  { key: 'ca_contracte_target', label: 'CA contracté cible', icon: Euro, placeholder: '10000', suffix: '€' },
+  { key: 'ca_collecte_target', label: 'CA collecté cible', icon: Euro, placeholder: '8000', suffix: '€' },
   { key: 'closing_rate_target', label: 'Taux de closing cible', icon: TrendingUp, placeholder: '30', suffix: '%', max: 100 },
-  { key: 'show_up_rate_target', label: 'Show-up rate cible', icon: UserCheck, placeholder: '80', suffix: '%', max: 100 },
 ]
 
 export function ObjectivesSection({ objective, userId }: ObjectivesSectionProps) {
@@ -35,9 +35,9 @@ export function ObjectivesSection({ objective, userId }: ObjectivesSectionProps)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
-    revenue_target: String(objective?.revenue_target ?? ''),
+    ca_contracte_target: String(objective?.ca_contracte_target ?? ''),
+    ca_collecte_target: String(objective?.ca_collecte_target ?? ''),
     closing_rate_target: String(objective?.closing_rate_target ?? ''),
-    show_up_rate_target: String(objective?.show_up_rate_target ?? ''),
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -53,18 +53,16 @@ export function ObjectivesSection({ objective, userId }: ObjectivesSectionProps)
       infopreneur_id: userId,
       period: 'monthly',
       period_start: periodStart,
-      revenue_target: form.revenue_target ? Number(form.revenue_target) : null,
+      ca_contracte_target: form.ca_contracte_target ? Number(form.ca_contracte_target) : null,
+      ca_collecte_target: form.ca_collecte_target ? Number(form.ca_collecte_target) : null,
       closing_rate_target: form.closing_rate_target ? Number(form.closing_rate_target) : null,
-      show_up_rate_target: form.show_up_rate_target ? Number(form.show_up_rate_target) : null,
     }
 
     let dbError
     if (objective?.id) {
-      // Update existing
       const { error } = await supabase.from('objectives').update(payload).eq('id', objective.id)
       dbError = error
     } else {
-      // Insert new
       const { error } = await supabase.from('objectives').insert(payload)
       dbError = error
     }

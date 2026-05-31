@@ -54,12 +54,12 @@ interface UpcomingPaymentItem {
 interface DashboardProspectsWidgetProps {
   infopreneurId: string
   overdueCount: number
-  caWeek: number
-  caTarget: number
+  caContracte: number
+  caContracteTarget: number
+  caCollecte: number
+  caCollecteTarget: number
   closingRate: number
   closingRateTarget: number
-  showUpRate: number
-  showUpRateTarget: number
   weekLabel: string
   upcomingTotal: number
   upcomingCount: number
@@ -70,12 +70,12 @@ interface DashboardProspectsWidgetProps {
 export function DashboardProspectsWidget({
   infopreneurId,
   overdueCount,
-  caWeek,
-  caTarget,
+  caContracte,
+  caContracteTarget,
+  caCollecte,
+  caCollecteTarget,
   closingRate,
   closingRateTarget,
-  showUpRate,
-  showUpRateTarget,
   weekLabel,
   upcomingTotal,
   upcomingCount,
@@ -131,12 +131,12 @@ export function DashboardProspectsWidget({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {children}
           <WeeklyRecap
-            caWeek={caWeek}
-            caTarget={caTarget}
+            caContracte={caContracte}
+            caContracteTarget={caContracteTarget}
+            caCollecte={caCollecte}
+            caCollecteTarget={caCollecteTarget}
             closingRate={closingRate}
             closingRateTarget={closingRateTarget}
-            showUpRate={showUpRate}
-            showUpRateTarget={showUpRateTarget}
             weekLabel={weekLabel}
           />
         </div>

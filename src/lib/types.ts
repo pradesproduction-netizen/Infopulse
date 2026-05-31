@@ -22,7 +22,8 @@ export interface Objective {
   infopreneur_id: string
   period: string
   period_start?: string | null
-  revenue_target: number | null
+  ca_contracte_target: number | null
+  ca_collecte_target: number | null
   closing_rate_target: number | null
   show_up_rate_target: number | null
 }
