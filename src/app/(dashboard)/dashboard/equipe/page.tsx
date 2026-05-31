@@ -20,7 +20,7 @@ export default async function EquipePage() {
     supabase.from('calls').select('*').eq('infopreneur_id', user.id),
     supabase
       .from('daily_kpis')
-      .select('team_member_id, role, ca_contracte, calls_bookes')
+      .select('team_member_id, role, r1_showup, r1_noshow, r2_showup, r2_noshow, signe, ca_contracte, ca_collecte, messages_envoyes, reponses_recues, followup, calls_bookes')
       .eq('infopreneur_id', user.id)
       .gte('date', monthStart)
       .lte('date', monthEnd),

@@ -8,7 +8,16 @@ import type { TeamMember } from '@/lib/types'
 interface DailyKpiRecord {
   team_member_id: string
   role: string
+  r1_showup: number | null
+  r1_noshow: number | null
+  r2_showup: number | null
+  r2_noshow: number | null
+  signe: number | null
   ca_contracte: number | null
+  ca_collecte: number | null
+  messages_envoyes: number | null
+  reponses_recues: number | null
+  followup: number | null
   calls_bookes: number | null
 }
 
@@ -18,7 +27,6 @@ interface TeamLeaderboardProps {
 }
 
 const MEDALS = ['🥇', '🥈', '🥉']
-const MEDAL_CLASSES = ['text-yellow-400', 'text-gray-300', 'text-amber-600']
 
 function MemberAvatar({ name, role }: { name: string; role: string }) {
   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -30,32 +38,42 @@ function MemberAvatar({ name, role }: { name: string; role: string }) {
   )
 }
 
+function Td({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <td className={cn('p-3 text-sm whitespace-nowrap', className)}>{children}</td>
+}
+
+function Th({ children }: { children: React.ReactNode }) {
+  return <th className="text-left p-3 text-xs font-medium text-muted-foreground whitespace-nowrap">{children}</th>
+}
+
 export function TeamLeaderboard({ teamMembers, dailyKpis = [] }: TeamLeaderboardProps) {
   const setters = teamMembers.filter((m) => m.role === 'setter')
   const closers = teamMembers.filter((m) => m.role === 'closer')
 
   const setterRanking = setters
     .map((m) => {
-      const mKpis = dailyKpis.filter((k) => k.team_member_id === m.id)
-      const callsBooked = mKpis.length > 0
-        ? mKpis.reduce((s, k) => s + Number(k.calls_bookes ?? 0), 0)
-        : (m.calls_booked ?? 0)
-      return {
-        member: m,
-        messages: m.messages_sent ?? 0,
-        followUps: m.follow_ups ?? 0,
-        callsBooked,
-      }
+      const kpis = dailyKpis.filter((k) => k.team_member_id === m.id)
+      const messages = kpis.reduce((s, k) => s + Number(k.messages_envoyes ?? 0), 0)
+      const reponses = kpis.reduce((s, k) => s + Number(k.reponses_recues ?? 0), 0)
+      const followup = kpis.reduce((s, k) => s + Number(k.followup ?? 0), 0)
+      const callsBookes = kpis.reduce((s, k) => s + Number(k.calls_bookes ?? 0), 0)
+      const tauxRep = messages > 0 ? Math.round((reponses / messages) * 100) : 0
+      return { member: m, messages, reponses, tauxRep, followup, callsBookes }
     })
-    .sort((a, b) => b.callsBooked - a.callsBooked || b.messages - a.messages)
+    .sort((a, b) => b.callsBookes - a.callsBookes)
 
   const closerRanking = closers
     .map((m) => {
-      const mKpis = dailyKpis.filter((k) => k.team_member_id === m.id)
-      const caContracte = mKpis.reduce((s, k) => s + Number(k.ca_contracte ?? 0), 0)
-      return { member: m, caContracte, signed: m.signed_clients ?? 0 }
+      const kpis = dailyKpis.filter((k) => k.team_member_id === m.id)
+      const showup = kpis.reduce((s, k) => s + Number(k.r1_showup ?? 0) + Number(k.r2_showup ?? 0), 0)
+      const noshow = kpis.reduce((s, k) => s + Number(k.r1_noshow ?? 0) + Number(k.r2_noshow ?? 0), 0)
+      const signe = kpis.reduce((s, k) => s + Number(k.signe ?? 0), 0)
+      const caContracte = kpis.reduce((s, k) => s + Number(k.ca_contracte ?? 0), 0)
+      const caCollecte = kpis.reduce((s, k) => s + Number(k.ca_collecte ?? 0), 0)
+      const tauxClosing = showup > 0 ? Math.round((signe / showup) * 100) : 0
+      return { member: m, showup, noshow, signe, caContracte, caCollecte, tauxClosing }
     })
-    .sort((a, b) => b.caContracte - a.caContracte || b.signed - a.signed)
+    .sort((a, b) => b.caContracte - a.caContracte)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -75,35 +93,33 @@ export function TeamLeaderboard({ teamMembers, dailyKpis = [] }: TeamLeaderboard
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    {['Rang', 'Membre', 'Messages', 'Follow-ups', 'Calls bookés', 'Badge'].map((col) => (
-                      <th key={col} className="text-left p-3 text-xs font-medium text-muted-foreground whitespace-nowrap">{col}</th>
-                    ))}
+                    <Th>Rang</Th>
+                    <Th>Membre</Th>
+                    <Th>Messages envoyés</Th>
+                    <Th>Taux de réponses</Th>
+                    <Th>Follow-up</Th>
+                    <Th>Calls bookés</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {setterRanking.map(({ member, messages, followUps, callsBooked }, i) => (
-                    <tr key={member.id} className={cn('border-b border-white/5 last:border-0', i === 0 && callsBooked > 0 && 'bg-blue-500/[0.04]')}>
-                      <td className="p-3">
-                        <span className={cn('text-base', MEDAL_CLASSES[i] ?? 'text-muted-foreground')}>
-                          {MEDALS[i] ?? `#${i + 1}`}
-                        </span>
-                      </td>
-                      <td className="p-3">
+                  {setterRanking.map(({ member, messages, reponses, tauxRep, followup, callsBookes }, i) => (
+                    <tr key={member.id} className={cn('border-b border-white/5 last:border-0', i === 0 && 'bg-blue-500/[0.04]')}>
+                      <Td>
+                        <span className="text-base">{MEDALS[i] ?? `#${i + 1}`}</span>
+                      </Td>
+                      <Td>
                         <div className="flex items-center gap-2">
                           <MemberAvatar name={member.full_name} role={member.role} />
-                          <span className="text-sm font-medium whitespace-nowrap">{member.full_name}</span>
+                          <span className="font-medium">{member.full_name}</span>
                         </div>
-                      </td>
-                      <td className="p-3 text-sm">{messages}</td>
-                      <td className="p-3 text-sm">{followUps}</td>
-                      <td className="p-3 text-sm font-medium">{callsBooked}</td>
-                      <td className="p-3">
-                        {i === 0 && callsBooked > 0 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 whitespace-nowrap">
-                            🏆 Top setter
-                          </span>
-                        )}
-                      </td>
+                      </Td>
+                      <Td>{messages}</Td>
+                      <Td>
+                        <span>{tauxRep}%</span>
+                        <span className="text-muted-foreground text-xs ml-1">({reponses}/{messages})</span>
+                      </Td>
+                      <Td>{followup}</Td>
+                      <Td className="font-medium">{callsBookes}</Td>
                     </tr>
                   ))}
                 </tbody>
@@ -129,36 +145,38 @@ export function TeamLeaderboard({ teamMembers, dailyKpis = [] }: TeamLeaderboard
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    {['Rang', 'Membre', 'CA contracté', 'Signés', 'Badge'].map((col) => (
-                      <th key={col} className="text-left p-3 text-xs font-medium text-muted-foreground whitespace-nowrap">{col}</th>
-                    ))}
+                    <Th>Rang</Th>
+                    <Th>Membre</Th>
+                    <Th>Show-up</Th>
+                    <Th>No-show</Th>
+                    <Th>Signés</Th>
+                    <Th>CA contracté</Th>
+                    <Th>CA collecté</Th>
+                    <Th>Taux de closing</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {closerRanking.map(({ member, caContracte, signed }, i) => (
-                    <tr key={member.id} className={cn('border-b border-white/5 last:border-0', i === 0 && caContracte > 0 && 'bg-yellow-500/[0.04]')}>
-                      <td className="p-3">
-                        <span className={cn('text-base', MEDAL_CLASSES[i] ?? 'text-muted-foreground')}>
-                          {MEDALS[i] ?? `#${i + 1}`}
-                        </span>
-                      </td>
-                      <td className="p-3">
+                  {closerRanking.map(({ member, showup, noshow, signe, caContracte, caCollecte, tauxClosing }, i) => (
+                    <tr key={member.id} className={cn('border-b border-white/5 last:border-0', i === 0 && 'bg-violet-500/[0.04]')}>
+                      <Td>
+                        <span className="text-base">{MEDALS[i] ?? `#${i + 1}`}</span>
+                      </Td>
+                      <Td>
                         <div className="flex items-center gap-2">
                           <MemberAvatar name={member.full_name} role={member.role} />
-                          <span className="text-sm font-medium whitespace-nowrap">{member.full_name}</span>
+                          <span className="font-medium">{member.full_name}</span>
                         </div>
-                      </td>
-                      <td className="p-3 text-sm font-medium">
+                      </Td>
+                      <Td>{showup}</Td>
+                      <Td>{noshow}</Td>
+                      <Td>{signe}</Td>
+                      <Td className="font-medium">
                         {caContracte > 0 ? `${caContracte.toLocaleString('fr-FR')} €` : '—'}
-                      </td>
-                      <td className="p-3 text-sm">{signed}</td>
-                      <td className="p-3">
-                        {i === 0 && caContracte > 0 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">
-                            🏆 Top closer
-                          </span>
-                        )}
-                      </td>
+                      </Td>
+                      <Td>
+                        {caCollecte > 0 ? `${caCollecte.toLocaleString('fr-FR')} €` : '—'}
+                      </Td>
+                      <Td>{tauxClosing}%</Td>
                     </tr>
                   ))}
                 </tbody>
