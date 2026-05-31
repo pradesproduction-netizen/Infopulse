@@ -3,14 +3,8 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Sparkles, Home, Kanban, User, LogOut } from 'lucide-react'
+import { Sparkles, Home, Kanban, User, LogOut, Link as LinkIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-
-const navigation = [
-  { name: 'Mon espace', href: '/espace-equipe', icon: Home, exact: true },
-  { name: 'Mon pipeline', href: '/espace-equipe/pipeline', icon: Kanban, exact: false },
-  { name: 'Mon profil', href: '/espace-equipe/profil', icon: User, exact: false },
-]
 
 interface EquipeSidebarProps {
   memberName: string
@@ -20,6 +14,13 @@ interface EquipeSidebarProps {
 export function EquipeSidebar({ memberName, memberRole }: EquipeSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+
+  const navigation = [
+    { name: 'Mon espace', href: '/espace-equipe', icon: Home, exact: true },
+    { name: 'Mon pipeline', href: '/espace-equipe/pipeline', icon: Kanban, exact: false },
+    ...(memberRole === 'closer' ? [{ name: 'Ressources', href: '/espace-equipe/ressources', icon: LinkIcon, exact: false }] : []),
+    { name: 'Mon profil', href: '/espace-equipe/profil', icon: User, exact: false },
+  ]
 
   async function handleLogout() {
     const supabase = createClient()
