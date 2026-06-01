@@ -1,3 +1,5 @@
+export const revalidate = 0
+
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardProspectsWidget } from '@/components/dashboard/dashboard-prospects-widget'
