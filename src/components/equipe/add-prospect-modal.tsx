@@ -54,6 +54,8 @@ function generateTallyLink(
 }
 
 export function AddProspectModal({ defaultStage, assignedTo, closers = [], tallyBaseUrl }: AddProspectModalProps) {
+  console.log('closers dans modal:', closers)
+  console.log('tallyBaseUrl dans modal:', tallyBaseUrl)
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -288,9 +290,13 @@ export function AddProspectModal({ defaultStage, assignedTo, closers = [], tally
             </div>
 
             {/* Assigned closer */}
-            {closers.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="p_closer">Closer attribué</Label>
+            <div className="space-y-2">
+              <Label htmlFor="p_closer">Closer attribué</Label>
+              {closers.length === 0 ? (
+                <p className="text-xs text-muted-foreground bg-white/5 border border-white/10 rounded-md px-3 py-2">
+                  Aucun closer dans l&apos;équipe
+                </p>
+              ) : (
                 <Select
                   value={form.assigned_closer_id}
                   onValueChange={(v) => setForm((f) => ({ ...f, assigned_closer_id: v }))}
@@ -305,13 +311,17 @@ export function AddProspectModal({ defaultStage, assignedTo, closers = [], tally
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Tally link */}
-            {tallyBaseUrl && (
-              <div className="space-y-2">
-                <Label>Lien Tally (généré automatiquement)</Label>
+            <div className="space-y-2">
+              <Label>Lien Tally (généré automatiquement)</Label>
+              {!tallyBaseUrl ? (
+                <p className="text-xs text-muted-foreground bg-white/5 border border-white/10 rounded-md px-3 py-2">
+                  Configurez votre lien Tally dans Compte → Intégrations
+                </p>
+              ) : (
                 <div className="flex gap-2">
                   <Input
                     value={generatedTallyLink ?? ''}
@@ -343,8 +353,8 @@ export function AddProspectModal({ defaultStage, assignedTo, closers = [], tally
                     </Button>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {error && (
               <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
