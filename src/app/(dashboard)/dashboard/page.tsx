@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardProspectsWidget } from '@/components/dashboard/dashboard-prospects-widget'
-import type { PaymentToChase } from '@/lib/types'
+import type { PaymentToChase, RdvProspect } from '@/lib/types'
 
 function getWeekBounds() {
   const now = new Date()
@@ -40,6 +40,8 @@ export default async function DashboardPage() {
     { data: paymentsToChaseRaw },
     { data: upcomingPayments },
     { data: weekKpis },
+    { data: r1ProspectsRaw },
+    { data: r2ProspectsRaw },
   ] = await Promise.all([
     supabase.from('objectives').select('*')
       .eq('infopreneur_id', user.id)
@@ -65,6 +67,18 @@ export default async function DashboardPage() {
       .eq('role', 'closer')
       .gte('date', mondayStr)
       .lte('date', sundayStr),
+    supabase.from('prospects')
+      .select('id, full_name, rdv_r1_date, team_members(full_name)')
+      .eq('infopreneur_id', user.id)
+      .gte('rdv_r1_date', monthStart)
+      .lte('rdv_r1_date', monthEnd)
+      .order('rdv_r1_date', { ascending: true }),
+    supabase.from('prospects')
+      .select('id, full_name, rdv_r2_date, team_members(full_name)')
+      .eq('infopreneur_id', user.id)
+      .gte('rdv_r2_date', monthStart)
+      .lte('rdv_r2_date', monthEnd)
+      .order('rdv_r2_date', { ascending: true }),
   ])
 
   const upcomingList = upcomingPayments ?? []
@@ -87,6 +101,9 @@ export default async function DashboardPage() {
 
   const weekLabel = `Semaine du ${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} au ${sunday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
 
+  const r1Prospects = (r1ProspectsRaw ?? []) as unknown as RdvProspect[]
+  const r2Prospects = (r2ProspectsRaw ?? []) as unknown as RdvProspect[]
+
   return (
     <div className="p-6 space-y-6">
       <DashboardProspectsWidget
@@ -102,6 +119,8 @@ export default async function DashboardPage() {
         upcomingTotal={upcomingTotal}
         upcomingCount={upcomingCount}
         upcomingPayments={upcomingPayments ?? []}
+        r1Prospects={r1Prospects}
+        r2Prospects={r2Prospects}
       />
     </div>
   )

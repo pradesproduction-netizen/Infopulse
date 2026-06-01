@@ -201,3 +201,11 @@ export interface PaymentLink {
   url: string
   created_at: string
 }
+
+export interface RdvProspect {
+  id: string
+  full_name: string
+  rdv_r1_date?: string | null
+  rdv_r2_date?: string | null
+  team_members?: { full_name: string } | null
+}

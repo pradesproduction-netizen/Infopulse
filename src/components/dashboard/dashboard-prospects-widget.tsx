@@ -8,6 +8,7 @@ import { WeeklyRecap } from '@/components/dashboard/weekly-recap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Euro, Phone, TrendingUp, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { RdvProspect } from '@/lib/types'
 
 
 function StatCard({
@@ -64,6 +65,8 @@ interface DashboardProspectsWidgetProps {
   upcomingTotal: number
   upcomingCount: number
   upcomingPayments?: UpcomingPaymentItem[]
+  r1Prospects?: RdvProspect[]
+  r2Prospects?: RdvProspect[]
   children?: React.ReactNode
 }
 
@@ -80,9 +83,12 @@ export function DashboardProspectsWidget({
   upcomingTotal,
   upcomingCount,
   upcomingPayments,
+  r1Prospects = [],
+  r2Prospects = [],
   children,
 }: DashboardProspectsWidgetProps) {
-  const { caMonth, rdvBooke } = useProspectsKpis(infopreneurId)
+  const { caMonth } = useProspectsKpis(infopreneurId)
+  const totalRdv = r1Prospects.length + r2Prospects.length
   const alertCount = usePaymentAlerts(infopreneurId)
   const [openPanel, setOpenPanel] = useState<PanelType | null>(null)
 
@@ -100,8 +106,10 @@ export function DashboardProspectsWidget({
           />
           <StatCard
             title="Appels prévus"
-            value={String(rdvBooke)}
-            sub={rdvBooke > 0 ? `R1 booké${rdvBooke !== 1 ? 's' : ''}` : 'Aucun R1 planifié'}
+            value={String(totalRdv)}
+            sub={totalRdv > 0
+              ? `${r1Prospects.length} R1 · ${r2Prospects.length} R2 ce mois`
+              : 'Aucun appel prévu ce mois'}
             icon={Phone}
             iconBg="bg-blue-500"
             onClick={() => setOpenPanel('rdv_booke')}
@@ -147,6 +155,8 @@ export function DashboardProspectsWidget({
         infopreneurId={infopreneurId}
         onClose={() => setOpenPanel(null)}
         upcomingPayments={upcomingPayments}
+        r1Prospects={r1Prospects}
+        r2Prospects={r2Prospects}
       />
     </>
   )

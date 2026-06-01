@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { X, ArrowRight, Loader2, Mail, CheckCircle, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import type { RdvProspect } from '@/lib/types'
 
 export type PanelType = 'ca_mois' | 'rdv_booke' | 'paiements' | 'relances'
 
@@ -51,9 +52,11 @@ interface KpiSlideOverProps {
   infopreneurId: string
   onClose: () => void
   upcomingPayments?: UpcomingPaymentServerItem[]
+  r1Prospects?: RdvProspect[]
+  r2Prospects?: RdvProspect[]
 }
 
-export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: upcomingPaymentsProp }: KpiSlideOverProps) {
+export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: upcomingPaymentsProp, r1Prospects = [], r2Prospects = [] }: KpiSlideOverProps) {
   const open = type !== null
   const [loading, setLoading] = useState(false)
   const [prospects, setProspects] = useState<ProspectItem[]>([])
@@ -107,16 +110,8 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
           setLoading(false)
         })
     } else if (type === 'rdv_booke') {
-      supabase
-        .from('prospects')
-        .select('id, full_name, estimated_value, updated_at')
-        .eq('infopreneur_id', infopreneurId)
-        .eq('pipeline_stage', 'r1_booke')
-        .order('updated_at', { ascending: false })
-        .then(({ data }) => {
-          setProspects((data ?? []) as ProspectItem[])
-          setLoading(false)
-        })
+      // Data passed from server — no client fetch needed
+      setLoading(false)
     } else if (type === 'relances') {
       supabase
         .from('clients')
@@ -365,12 +360,87 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
                 ))}
               </ul>
             )
+          ) : type === 'rdv_booke' ? (
+            r1Prospects.length === 0 && r2Prospects.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-16">
+                Aucun appel prévu ce mois.
+              </p>
+            ) : (
+              <div className="space-y-6">
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    R1 — {r1Prospects.length} appel{r1Prospects.length !== 1 ? 's' : ''}
+                  </h3>
+                  {r1Prospects.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun R1 ce mois.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {r1Prospects.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-4 py-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{p.full_name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {p.rdv_r1_date
+                                ? new Date(p.rdv_r1_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+                                : '—'}
+                              {p.team_members?.full_name ? ` · ${p.team_members.full_name}` : ''}
+                            </p>
+                          </div>
+                          <Link
+                            href="/dashboard/equipe"
+                            onClick={onClose}
+                            className="flex-shrink-0 text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors whitespace-nowrap"
+                          >
+                            Voir <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    R2 — {r2Prospects.length} appel{r2Prospects.length !== 1 ? 's' : ''}
+                  </h3>
+                  {r2Prospects.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun R2 ce mois.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {r2Prospects.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-4 py-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{p.full_name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {p.rdv_r2_date
+                                ? new Date(p.rdv_r2_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+                                : '—'}
+                              {p.team_members?.full_name ? ` · ${p.team_members.full_name}` : ''}
+                            </p>
+                          </div>
+                          <Link
+                            href="/dashboard/equipe"
+                            onClick={onClose}
+                            className="flex-shrink-0 text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors whitespace-nowrap"
+                          >
+                            Voir <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
+            )
           ) : (
             prospects.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-16">
-                {type === 'ca_mois'
-                  ? 'Aucun prospect gagné ce mois-ci.'
-                  : 'Aucun R1 booké pour le moment.'}
+                Aucun prospect gagné ce mois-ci.
               </p>
             ) : (
               <ul className="space-y-2">
@@ -382,17 +452,13 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{p.full_name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {type === 'ca_mois'
-                          ? p.estimated_value != null
-                            ? `${Number(p.estimated_value).toLocaleString('fr-FR')} €`
-                            : 'Valeur non renseignée'
-                          : p.updated_at
-                            ? `Booké le ${new Date(p.updated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
-                            : 'Date inconnue'}
+                        {p.estimated_value != null
+                          ? `${Number(p.estimated_value).toLocaleString('fr-FR')} €`
+                          : 'Valeur non renseignée'}
                       </p>
                     </div>
                     <Link
-                      href={p.client_id ? `/dashboard/clients/${p.client_id}` : `/dashboard/prospects`}
+                      href={p.client_id ? `/dashboard/clients/${p.client_id}` : `/dashboard/equipe`}
                       onClick={onClose}
                       className="flex-shrink-0 text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors whitespace-nowrap"
                     >
