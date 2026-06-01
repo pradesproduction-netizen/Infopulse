@@ -48,19 +48,31 @@ export async function POST(req: NextRequest) {
   }
 
   // Step 2: force email confirmed + set user_metadata via updateUserById
-  await admin.auth.admin.updateUserById(authUserId, {
+  const { error: updateErr } = await admin.auth.admin.updateUserById(authUserId, {
     email_confirm: true,
     user_metadata: { full_name: name ?? '', role: 'team_member' },
   })
+  if (updateErr) console.error('[create-member-account] updateUserById error:', updateErr.message)
 
   // Step 3: link user_id to the team_members record
-  await admin.from('team_members').update({ user_id: authUserId }).eq('id', memberId)
+  const { error: memberUpdateErr } = await admin
+    .from('team_members')
+    .update({ user_id: authUserId })
+    .eq('id', memberId)
+  if (memberUpdateErr) {
+    console.error('[create-member-account] team_members update error:', memberUpdateErr.message)
+    return NextResponse.json({ error: 'Erreur liaison membre: ' + memberUpdateErr.message }, { status: 500 })
+  }
 
   // Step 4: upsert into profiles so role-based redirect works at login
-  await admin.from('profiles').upsert(
+  const { error: profileErr } = await admin.from('profiles').upsert(
     { id: authUserId, email, full_name: name ?? null, role: 'team_member' },
     { onConflict: 'id' }
   )
+  if (profileErr) {
+    console.error('[create-member-account] profiles upsert error:', profileErr.message)
+    return NextResponse.json({ error: 'Erreur profil: ' + profileErr.message }, { status: 500 })
+  }
 
   return NextResponse.json({ success: true, userId: authUserId, tempPassword: TEMP_PASSWORD })
 }
