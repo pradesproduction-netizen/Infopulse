@@ -386,7 +386,6 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
                               {p.rdv_r1_date
                                 ? new Date(p.rdv_r1_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
                                 : '—'}
-                              {p.team_members?.full_name ? ` · ${p.team_members.full_name}` : ''}
                             </p>
                           </div>
                           <Link
@@ -420,7 +419,6 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
                               {p.rdv_r2_date
                                 ? new Date(p.rdv_r2_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
                                 : '—'}
-                              {p.team_members?.full_name ? ` · ${p.team_members.full_name}` : ''}
                             </p>
                           </div>
                           <Link

@@ -68,13 +68,13 @@ export default async function DashboardPage() {
       .gte('date', mondayStr)
       .lte('date', sundayStr),
     supabase.from('prospects')
-      .select('id, full_name, rdv_r1_date, team_members!prospects_team_member_id_fkey(full_name)')
+      .select('id, full_name, rdv_r1_date, team_member_id')
       .eq('infopreneur_id', user.id)
       .gte('rdv_r1_date', monthStart)
       .lte('rdv_r1_date', monthEnd)
       .order('rdv_r1_date', { ascending: true }),
     supabase.from('prospects')
-      .select('id, full_name, rdv_r2_date, team_members!prospects_team_member_id_fkey(full_name)')
+      .select('id, full_name, rdv_r2_date, team_member_id')
       .eq('infopreneur_id', user.id)
       .gte('rdv_r2_date', monthStart)
       .lte('rdv_r2_date', monthEnd)
