@@ -1,22 +1,9 @@
 import { getAuthenticatedTeamMember } from '@/lib/get-team-member'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent } from '@/components/ui/card'
-import { Phone, Mail, Calendar, CheckCircle2, TrendingUp, XCircle, User } from 'lucide-react'
+import { Phone, Mail, Calendar } from 'lucide-react'
 
 export default async function ProfilPage() {
   const member = await getAuthenticatedTeamMember()
-  const admin = createAdminClient()
-
-  const { data: calls } = await admin
-    .from('calls')
-    .select('*')
-    .eq('team_member_id', member.id)
-
-  const allCalls = calls ?? []
-  const completed = allCalls.filter((c: { status: string }) => c.status === 'completed').length
-  const noShows = allCalls.filter((c: { status: string }) => c.status === 'no_show').length
-  const cancelled = allCalls.filter((c: { status: string }) => c.status === 'cancelled').length
-  const showUpRate = allCalls.length > 0 ? Math.round((completed / allCalls.length) * 100) : 0
 
   const memberInitials = member.full_name
     .split(' ')
@@ -70,60 +57,6 @@ export default async function ProfilPage() {
           </div>
         </CardContent>
       </Card>
-
-      <div>
-        <h2 className="font-semibold mb-4">Statistiques globales</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="border-white/10 bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Total appels</p>
-              </div>
-              <p className="text-3xl font-bold">{allCalls.length}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-white/10 bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-violet-400" />
-                <p className="text-xs text-muted-foreground">Taux de show-up</p>
-              </div>
-              <p className="text-3xl font-bold text-violet-400">{showUpRate}%</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-white/10 bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-4 w-4 text-green-400" />
-                <p className="text-xs text-muted-foreground">Appels terminés</p>
-              </div>
-              <p className="text-3xl font-bold text-green-400">{completed}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-white/10 bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <XCircle className="h-4 w-4 text-orange-400" />
-                <p className="text-xs text-muted-foreground">No-shows</p>
-              </div>
-              <p className="text-3xl font-bold text-orange-400">{noShows}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {cancelled > 0 && (
-          <Card className="border-white/10 bg-card/50 mt-4">
-            <CardContent className="p-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Appels annulés</p>
-              <p className="text-lg font-semibold text-red-400">{cancelled}</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
     </div>
   )
 }

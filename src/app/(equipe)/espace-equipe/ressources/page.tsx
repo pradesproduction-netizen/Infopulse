@@ -42,12 +42,7 @@ export default async function RessourcesPage() {
 
   return (
     <div className="p-6 space-y-8 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold">Ressources</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Liens de paiement mis à disposition par votre coach
-        </p>
-      </div>
+      <h1 className="text-2xl font-bold">Ressources</h1>
 
       {/* SOP Document */}
       <div className="space-y-3">
