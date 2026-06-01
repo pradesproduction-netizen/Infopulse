@@ -54,7 +54,7 @@ function generateTallyLink(
 }
 
 export function AddProspectModal({ defaultStage, assignedTo, closers = [], tallyBaseUrl }: AddProspectModalProps) {
-  console.log('closers dans modal:', closers)
+
   console.log('tallyBaseUrl dans modal:', tallyBaseUrl)
   const router = useRouter()
   const [open, setOpen] = useState(false)

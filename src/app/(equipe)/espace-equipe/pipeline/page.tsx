@@ -19,7 +19,7 @@ export default async function PipelinePage() {
 
   const [{ data: prospects }, { data: closers }, { data: profile }] = await Promise.all([
     filteredQuery,
-    admin.from('team_members').select('id, full_name').eq('infopreneur_id', member.infopreneur_id).eq('role', 'closer').eq('active', true),
+    admin.from('team_members').select('id, full_name').eq('infopreneur_id', member.infopreneur_id).eq('role', 'closer'),
     admin.from('profiles').select('tally_base_url').eq('id', member.infopreneur_id).maybeSingle(),
   ])
 

@@ -283,9 +283,11 @@ export function EditProspectModal({ prospect, open, onClose, onSaved, closers = 
           </div>
 
           {/* Assigned closer */}
-          {closers.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="ep_closer">Closer attribué</Label>
+          <div className="space-y-2">
+            <Label htmlFor="ep_closer">Closer attribué</Label>
+            {closers.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Aucun closer dans l&apos;équipe</p>
+            ) : (
               <Select
                 value={form.assigned_closer_id || '__none__'}
                 onValueChange={(v) => setForm((f) => ({ ...f, assigned_closer_id: v === '__none__' ? '' : v }))}
@@ -300,8 +302,8 @@ export function EditProspectModal({ prospect, open, onClose, onSaved, closers = 
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Tally link */}
           {tallyBaseUrl && (
