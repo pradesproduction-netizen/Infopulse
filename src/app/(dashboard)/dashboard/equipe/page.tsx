@@ -15,9 +15,8 @@ export default async function EquipePage() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-  const [{ data: teamMembers }, { data: calls }, { data: monthKpis }] = await Promise.all([
+  const [{ data: teamMembers }, { data: monthKpis }] = await Promise.all([
     supabase.from('team_members').select('*').eq('infopreneur_id', user.id),
-    supabase.from('calls').select('*').eq('infopreneur_id', user.id),
     supabase
       .from('daily_kpis')
       .select('team_member_id, role, r1_showup, r1_noshow, r2_showup, r2_noshow, signe, ca_contracte, ca_collecte, messages_envoyes, reponses_recues, followup, calls_bookes')
@@ -25,6 +24,20 @@ export default async function EquipePage() {
       .gte('date', monthStart)
       .lte('date', monthEnd),
   ])
+
+  type KpiAgg = { team_member_id: string; messages_envoyes: number; reponses_recues: number; calls_bookes: number; showup: number; noshow: number; signe: number }
+  const kpiMap = new Map<string, KpiAgg>()
+  for (const k of (monthKpis ?? [])) {
+    const prev = kpiMap.get(k.team_member_id) ?? { team_member_id: k.team_member_id, messages_envoyes: 0, reponses_recues: 0, calls_bookes: 0, showup: 0, noshow: 0, signe: 0 }
+    prev.messages_envoyes += Number(k.messages_envoyes ?? 0)
+    prev.reponses_recues += Number(k.reponses_recues ?? 0)
+    prev.calls_bookes += Number(k.calls_bookes ?? 0)
+    prev.showup += Number(k.r1_showup ?? 0) + Number(k.r2_showup ?? 0)
+    prev.noshow += Number(k.r1_noshow ?? 0) + Number(k.r2_noshow ?? 0)
+    prev.signe += Number(k.signe ?? 0)
+    kpiMap.set(k.team_member_id, prev)
+  }
+  const memberKpis = Array.from(kpiMap.values())
 
   const activeCount = teamMembers?.filter((m) => m.active).length ?? 0
 
@@ -42,7 +55,7 @@ export default async function EquipePage() {
 
       <TeamProspectsKpi teamMembers={teamMembers ?? []} infopreneurId={user.id} />
       <TeamLeaderboard teamMembers={teamMembers ?? []} dailyKpis={monthKpis ?? []} />
-      <TeamMembersGrid teamMembers={teamMembers ?? []} calls={calls ?? []} />
+      <TeamMembersGrid teamMembers={teamMembers ?? []} memberKpis={memberKpis} />
     </div>
   )
 }

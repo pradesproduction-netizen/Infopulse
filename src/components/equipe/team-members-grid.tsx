@@ -14,17 +14,21 @@ import { AlertDialog } from '@/components/ui/alert-dialog'
 import { Pencil, Trash2, Power, Loader2, ArrowRight, Link2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { TeamMember, Call } from '@/lib/types'
+import type { TeamMember } from '@/lib/types'
+
+export interface MemberKpiAgg {
+  team_member_id: string
+  messages_envoyes: number
+  reponses_recues: number
+  calls_bookes: number
+  showup: number
+  noshow: number
+  signe: number
+}
 
 interface TeamMembersGridProps {
   teamMembers: TeamMember[]
-  calls: Call[]
-}
-
-function isThisMonth(dateStr: string) {
-  const d = new Date(dateStr)
-  const now = new Date()
-  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  memberKpis: MemberKpiAgg[]
 }
 
 interface EditModalProps {
@@ -139,10 +143,10 @@ function EditMemberModal({ member, open, onClose }: EditModalProps) {
 
 interface MemberCardProps {
   member: TeamMember
-  calls: Call[]
+  memberKpi: MemberKpiAgg | undefined
 }
 
-function MemberCard({ member, calls }: MemberCardProps) {
+function MemberCard({ member, memberKpi }: MemberCardProps) {
   const router = useRouter()
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -156,11 +160,6 @@ function MemberCard({ member, calls }: MemberCardProps) {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
-  const thisMonthCalls = calls.filter((c) => c.team_member_id === member.id && isThisMonth(c.call_date))
-  const completed = thisMonthCalls.filter((c) => c.status === 'completed').length
-  const noShow = thisMonthCalls.filter((c) => c.status === 'no_show').length
-  const showUpRate = completed + noShow > 0 ? Math.round((completed / (completed + noShow)) * 100) : 0
 
   const initials = member.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
@@ -180,16 +179,19 @@ function MemberCard({ member, calls }: MemberCardProps) {
     if (res.ok) router.refresh()
   }
 
+  const agg = memberKpi ?? { messages_envoyes: 0, reponses_recues: 0, calls_bookes: 0, showup: 0, noshow: 0, signe: 0, team_member_id: member.id }
+  const tauxRep = agg.messages_envoyes > 0 ? Math.round((agg.reponses_recues / agg.messages_envoyes) * 100) : 0
+
   const kpis = member.role === 'setter'
     ? [
-        { label: 'Messages', value: member.messages_sent ?? 0 },
-        { label: 'Follow-ups', value: member.follow_ups ?? 0 },
-        { label: 'Calls bookés', value: member.calls_booked ?? 0 },
+        { label: 'Messages envoyés', value: agg.messages_envoyes },
+        { label: 'Taux de réponses', value: `${tauxRep}%` },
+        { label: 'Calls bookés', value: agg.calls_bookes },
       ]
     : [
-        { label: 'Appels', value: thisMonthCalls.length },
-        { label: 'Show-up', value: `${showUpRate}%` },
-        { label: 'Signés', value: member.signed_clients ?? 0 },
+        { label: 'Show-up', value: agg.showup },
+        { label: 'No-show', value: agg.noshow },
+        { label: 'Signés', value: agg.signe },
       ]
 
   return (
@@ -277,9 +279,10 @@ function MemberCard({ member, calls }: MemberCardProps) {
   )
 }
 
-export function TeamMembersGrid({ teamMembers, calls }: TeamMembersGridProps) {
+export function TeamMembersGrid({ teamMembers, memberKpis }: TeamMembersGridProps) {
   const setters = teamMembers.filter((m) => m.role === 'setter')
   const closers = teamMembers.filter((m) => m.role === 'closer')
+  const kpiMap = new Map(memberKpis.map((k) => [k.team_member_id, k]))
 
   if (teamMembers.length === 0) {
     return (
@@ -301,7 +304,7 @@ export function TeamMembersGrid({ teamMembers, calls }: TeamMembersGridProps) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {setters.map((member) => (
-              <MemberCard key={member.id} member={member} calls={calls} />
+              <MemberCard key={member.id} member={member} memberKpi={kpiMap.get(member.id)} />
             ))}
           </div>
         </div>
@@ -316,7 +319,7 @@ export function TeamMembersGrid({ teamMembers, calls }: TeamMembersGridProps) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {closers.map((member) => (
-              <MemberCard key={member.id} member={member} calls={calls} />
+              <MemberCard key={member.id} member={member} memberKpi={kpiMap.get(member.id)} />
             ))}
           </div>
         </div>
