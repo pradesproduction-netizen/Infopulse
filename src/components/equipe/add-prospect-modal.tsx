@@ -298,14 +298,14 @@ export function AddProspectModal({ defaultStage, assignedTo, closers = [], tally
                 </p>
               ) : (
                 <Select
-                  value={form.assigned_closer_id}
-                  onValueChange={(v) => setForm((f) => ({ ...f, assigned_closer_id: v }))}
+                  value={form.assigned_closer_id || '__none__'}
+                  onValueChange={(v) => setForm((f) => ({ ...f, assigned_closer_id: v === '__none__' ? '' : v }))}
                 >
                   <SelectTrigger id="p_closer" disabled={loading}>
-                    <SelectValue placeholder="Aucun closer attribué" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun</SelectItem>
+                    <SelectItem value="__none__">Aucun</SelectItem>
                     {closers.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
                     ))}
