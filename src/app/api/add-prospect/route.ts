@@ -8,6 +8,17 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
+  const admin = createAdminClient()
+
+  // If the caller is a team member, use their infopreneur_id (not their own auth id)
+  const { data: memberRows } = await admin
+    .from('team_members')
+    .select('infopreneur_id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+  const infopreneurId = memberRows?.[0]?.infopreneur_id ?? user.id
+
   const { full_name, email, phone, source, estimated_value, pipeline_stage, instagram_url, linkedin_url, team_member_id, assigned_closer_id, rdv_r1_date, rdv_r2_date, tally_link } = await request.json()
 
   if (!full_name?.trim() || !pipeline_stage) {
@@ -15,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const row = {
-    infopreneur_id: user.id,
+    infopreneur_id: infopreneurId,
     full_name: full_name.trim(),
     email: email?.trim() || null,
     phone: phone?.trim() || null,
@@ -31,7 +42,8 @@ export async function POST(request: Request) {
     tally_link: tally_link || null,
   }
 
-  const { data: inserted, error } = await supabase.from('prospects').insert(row).select('id').single()
+  // Use admin client so team members can insert under their infopreneur's account
+  const { data: inserted, error } = await admin.from('prospects').insert(row).select('id').single()
 
   if (error) {
     console.error('[add-prospect] INSERT error:', error.message)
@@ -43,14 +55,13 @@ export async function POST(request: Request) {
 
   // Auto-create client when prospect is directly added to 'signes'
   if (pipeline_stage === 'signes') {
-    const admin = createAdminClient()
     const clientResult = await maybeCreateClient(
       {
         full_name: row.full_name,
         email: row.email,
         phone: row.phone,
         estimated_value: row.estimated_value,
-        infopreneur_id: user.id,
+        infopreneur_id: infopreneurId,
         prospectId: inserted?.id ?? null,
       },
       admin
