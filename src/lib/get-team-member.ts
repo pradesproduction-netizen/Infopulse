@@ -11,42 +11,50 @@ export async function getAuthenticatedTeamMember(): Promise<TeamMember> {
   const admin = createAdminClient()
 
   // Try user_id first (preferred), fallback to email for legacy accounts
-  let { data: member } = await admin
+  // Use limit(1) + order to avoid maybeSingle() failing on duplicate user_ids (data integrity issue)
+  const { data: byUserId } = await admin
     .from('team_members')
     .select('*')
     .eq('user_id', user.id)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+    .limit(1)
+  const member = byUserId?.[0] ?? null
 
   if (!member) {
     const { data: byEmail } = await admin
       .from('team_members')
       .select('*')
       .eq('email', user.email ?? '')
-      .maybeSingle()
-    member = byEmail
+      .order('created_at', { ascending: true })
+      .limit(1)
+    const memberByEmail = byEmail?.[0] ?? null
+    if (!memberByEmail) redirect('/login')
+    return memberByEmail as TeamMember
   }
 
-  if (!member) redirect('/login')
   return member as TeamMember
 }
 
 export async function findTeamMemberOrNull(userId: string, email: string): Promise<TeamMember | null> {
   const admin = createAdminClient()
 
-  let { data: member } = await admin
+  const { data: byUserId } = await admin
     .from('team_members')
     .select('*')
     .eq('user_id', userId)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+    .limit(1)
+  const member = byUserId?.[0] ?? null
 
   if (!member) {
     const { data: byEmail } = await admin
       .from('team_members')
       .select('*')
       .eq('email', email)
-      .maybeSingle()
-    member = byEmail
+      .order('created_at', { ascending: true })
+      .limit(1)
+    return (byEmail?.[0] as TeamMember) ?? null
   }
 
-  return (member as TeamMember) ?? null
+  return member as TeamMember
 }
