@@ -15,6 +15,7 @@ export interface Profile {
   avatar_url: string | null
   company: string | null
   subscription_plan: string | null
+  tally_base_url: string | null
 }
 
 export interface Objective {
@@ -130,12 +131,27 @@ export interface Prospect {
   estimated_value: number | null
   pipeline_stage: 'nouveau_lead' | 'set_en_cours' | 'r1_booke' | 'r1_noshow' | 'r2_booke' | 'r2_show' | 'follow_up' | 'signes' | 'perdu'
   team_member_id: string | null
+  assigned_closer_id: string | null
   client_id: string | null
+  rdv_r1_date: string | null
+  rdv_r2_date: string | null
+  tally_link: string | null
   instagram_url: string | null
   linkedin_url: string | null
   notes: string | null
   created_at: string
   updated_at: string | null
+}
+
+export interface Notification {
+  id: string
+  team_member_id: string
+  infopreneur_id: string
+  type: string
+  message: string
+  prospect_id: string | null
+  read: boolean
+  created_at: string
 }
 
 export interface Program {

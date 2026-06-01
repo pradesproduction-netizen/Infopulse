@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { maybeCreateClient, type ClientCreationResult } from '@/lib/auto-create-client'
 
-const ALLOWED_FIELDS = ['full_name', 'email', 'phone', 'source', 'estimated_value', 'pipeline_stage', 'instagram_url', 'linkedin_url', 'notes'] as const
+const ALLOWED_FIELDS = ['full_name', 'email', 'phone', 'source', 'estimated_value', 'pipeline_stage', 'instagram_url', 'linkedin_url', 'notes', 'assigned_closer_id', 'rdv_r1_date', 'rdv_r2_date', 'tally_link'] as const
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
@@ -27,6 +27,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const admin = createAdminClient()
   const becomingGagne = updates.pipeline_stage === 'signes'
+  const becomingR1Booke = updates.pipeline_stage === 'r1_booke'
 
   // Infopreneur path — RLS handles authorization
   const { data } = await supabase
@@ -45,6 +46,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (becomingGagne) {
       clientResult = await maybeCreateClient({ ...(data as Parameters<typeof maybeCreateClient>[0]), prospectId: id }, admin)
       if (clientResult.client_id) revalidatePath('/dashboard/clients', 'page')
+    }
+
+    if (becomingR1Booke && (data as Record<string, unknown>).assigned_closer_id) {
+      await admin.from('notifications').insert({
+        team_member_id: (data as Record<string, unknown>).assigned_closer_id,
+        infopreneur_id: user.id,
+        type: 'r1_booke',
+        message: `R1 booké — ${(data as Record<string, unknown>).full_name}`,
+        prospect_id: id,
+      })
     }
 
     return Response.json({ success: true, prospect: data, ...clientResult })
@@ -76,6 +87,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (becomingGagne) {
     clientResult = await maybeCreateClient({ ...(updated as Parameters<typeof maybeCreateClient>[0]), prospectId: id }, admin)
     if (clientResult.client_created) revalidatePath('/dashboard/clients', 'page')
+  }
+
+  if (becomingR1Booke && (updated as Record<string, unknown>).assigned_closer_id) {
+    await admin.from('notifications').insert({
+      team_member_id: (updated as Record<string, unknown>).assigned_closer_id,
+      infopreneur_id: member.infopreneur_id,
+      type: 'r1_booke',
+      message: `R1 booké — ${(updated as Record<string, unknown>).full_name}`,
+      prospect_id: id,
+    })
   }
 
   revalidatePath('/espace-equipe/pipeline', 'page')

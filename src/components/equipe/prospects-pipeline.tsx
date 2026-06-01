@@ -28,6 +28,8 @@ interface ProspectsPipelineProps {
   prospects: Prospect[]
   memberId?: string
   noAdd?: boolean
+  closers?: { id: string; full_name: string }[]
+  tallyBaseUrl?: string | null
 }
 
 const COLUMNS: {
@@ -79,9 +81,13 @@ function LinkedInIcon({ className }: { className?: string }) {
 }
 
 // Shared card content — used in both kanban and drag overlay
-function ProspectCardContent({ prospect, badgeClass }: { prospect: Prospect; badgeClass: string }) {
+function ProspectCardContent({ prospect, badgeClass, closerName }: { prospect: Prospect; badgeClass: string; closerName?: string | null }) {
   const initials = prospect.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
   const hasSocial = prospect.instagram_url || prospect.linkedin_url
+  const r1Label = prospect.rdv_r1_date
+    ? `R1 : ${new Date(prospect.rdv_r1_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}`
+    : null
+  const closerFirst = closerName ? closerName.split(' ')[0] : null
   return (
     <CardContent className="p-3">
       <div className="flex items-start gap-2">
@@ -92,6 +98,12 @@ function ProspectCardContent({ prospect, badgeClass }: { prospect: Prospect; bad
           <p className="text-sm font-medium truncate">{prospect.full_name}</p>
           {prospect.estimated_value && (
             <p className="text-xs text-muted-foreground">{prospect.estimated_value.toLocaleString('fr-FR')} €</p>
+          )}
+          {(r1Label || closerFirst) && (
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {r1Label && <span className="text-[10px] text-sky-400">{r1Label}</span>}
+              {closerFirst && <span className="text-[10px] text-violet-400">→ {closerFirst}</span>}
+            </div>
           )}
         </div>
       </div>
@@ -158,12 +170,14 @@ function ProspectCardContent({ prospect, badgeClass }: { prospect: Prospect; bad
 function DraggableCard({
   prospect,
   badgeClass,
+  closerName,
   onEdit,
   onStageChange,
   onDelete,
 }: {
   prospect: Prospect
   badgeClass: string
+  closerName?: string | null
   onEdit: () => void
   onStageChange: (stage: Prospect['pipeline_stage']) => void
   onDelete: () => void
@@ -180,7 +194,7 @@ function DraggableCard({
         {...attributes}
         {...listeners}
       >
-        <ProspectCardContent prospect={prospect} badgeClass={badgeClass} />
+        <ProspectCardContent prospect={prospect} badgeClass={badgeClass} closerName={closerName} />
         {/* Trash — top right, revealed on hover */}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete() }}
@@ -230,6 +244,7 @@ function DroppableColumn({
   onDelete,
   memberId,
   noAdd,
+  closerMap,
 }: {
   col: typeof COLUMNS[number]
   prospects: Prospect[]
@@ -238,6 +253,7 @@ function DroppableColumn({
   onDelete: (p: Prospect) => void
   memberId?: string
   noAdd?: boolean
+  closerMap: Map<string, string>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.stage })
 
@@ -257,6 +273,7 @@ function DroppableColumn({
             key={p.id}
             prospect={p}
             badgeClass={col.badgeClass}
+            closerName={p.assigned_closer_id ? (closerMap.get(p.assigned_closer_id) ?? null) : null}
             onEdit={() => onEdit(p)}
             onStageChange={(stage) => onStageChange(p.id, stage)}
             onDelete={() => onDelete(p)}
@@ -272,12 +289,14 @@ function DroppableColumn({
   )
 }
 
-export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd }: ProspectsPipelineProps) {
+export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd, closers = [], tallyBaseUrl }: ProspectsPipelineProps) {
   const router = useRouter()
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null)
   const [deletingProspect, setDeletingProspect] = useState<Prospect | null>(null)
+
+  const closerMap = new Map(closers.map((c) => [c.id, c.full_name]))
 
   // Sync server-fetched props into local state after router.refresh()
   useEffect(() => {
@@ -373,6 +392,7 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
                 onDelete={setDeletingProspect}
                 memberId={memberId}
                 noAdd={noAdd}
+                closerMap={closerMap}
               />
             ))}
           </div>
@@ -381,7 +401,11 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
         <DragOverlay dropAnimation={null}>
           {activeProspect && activeCol ? (
             <Card className="w-52 border-white/30 bg-card shadow-2xl rotate-1 opacity-95 pointer-events-none">
-              <ProspectCardContent prospect={activeProspect} badgeClass={activeCol.badgeClass} />
+              <ProspectCardContent
+                prospect={activeProspect}
+                badgeClass={activeCol.badgeClass}
+                closerName={activeProspect.assigned_closer_id ? (closerMap.get(activeProspect.assigned_closer_id) ?? null) : null}
+              />
             </Card>
           ) : null}
         </DragOverlay>
@@ -396,6 +420,8 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
             setProspects((prev) => prev.map((p) => p.id === updated.id ? updated : p))
             setEditingProspect(null)
           }}
+          closers={closers}
+          tallyBaseUrl={tallyBaseUrl}
         />
       )}
 

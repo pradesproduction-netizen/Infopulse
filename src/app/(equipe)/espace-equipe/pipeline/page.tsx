@@ -7,11 +7,21 @@ export default async function PipelinePage() {
   const member = await getAuthenticatedTeamMember()
   const admin = createAdminClient()
 
-  const { data: prospects } = await admin
+  const prospectsQuery = admin
     .from('prospects')
     .select('*')
     .eq('infopreneur_id', member.infopreneur_id)
     .order('created_at', { ascending: false })
+
+  const filteredQuery = member.role === 'setter'
+    ? prospectsQuery.eq('team_member_id', member.id)
+    : prospectsQuery.eq('assigned_closer_id', member.id)
+
+  const [{ data: prospects }, { data: closers }, { data: profile }] = await Promise.all([
+    filteredQuery,
+    admin.from('team_members').select('id, full_name').eq('infopreneur_id', member.infopreneur_id).eq('role', 'closer').eq('active', true),
+    admin.from('profiles').select('tally_base_url').eq('id', member.infopreneur_id).maybeSingle(),
+  ])
 
   const allProspects = (prospects ?? []) as Prospect[]
 
@@ -23,7 +33,13 @@ export default async function PipelinePage() {
           {allProspects.length} prospect{allProspects.length !== 1 ? 's' : ''} au total
         </p>
       </div>
-      <ProspectsPipeline prospects={allProspects} noAdd />
+      <ProspectsPipeline
+        prospects={allProspects}
+        noAdd={member.role === 'closer'}
+        memberId={member.id}
+        closers={closers ?? []}
+        tallyBaseUrl={profile?.tally_base_url ?? null}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { findTeamMemberOrNull } from '@/lib/get-team-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DailyKpiCalendar } from '@/components/equipe/daily-kpi-calendar'
 import { AutoRefresh } from '@/components/ui/auto-refresh'
+import { NotificationBanner } from '@/components/equipe/notification-banner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TrendingUp, BarChart2, MessageSquare, CalendarDays } from 'lucide-react'
@@ -272,11 +273,21 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
   const mondayStr = toDateStr(monday)
   const sundayStr = toDateStr(sunday)
 
-  const [{ data: monthKpisRaw }, { data: weekKpis }] = await Promise.all([
+  const todayStart = `${today}T00:00:00.000Z`
+  const tomorrowStart = (() => {
+    const d = new Date(now); d.setDate(d.getDate() + 1)
+    return `${toDateStr(d)}T00:00:00.000Z`
+  })()
+
+  const [{ data: monthKpisRaw }, { data: weekKpis }, { data: todayNotifs }] = await Promise.all([
     admin.from('daily_kpis').select('*').eq('team_member_id', member.id).gte('date', monthStart).lte('date', monthEnd),
     admin.from('daily_kpis').select('*').eq('team_member_id', member.id).gte('date', mondayStr).lte('date', sundayStr),
+    member.role === 'closer' && !isReadOnly
+      ? admin.from('notifications').select('id, message').eq('team_member_id', member.id).eq('type', 'r1_booke').eq('read', false).gte('created_at', todayStart).lt('created_at', tomorrowStart)
+      : Promise.resolve({ data: [] }),
   ])
 
+  const closerNotifs = (todayNotifs ?? []) as { id: string; message: string }[]
   const monthKpiList = (monthKpisRaw ?? []) as DailyKpi[]
   const filledDates = monthKpiList.map((k) => k.date)
   const todayFilled = filledDates.includes(today)
@@ -305,6 +316,9 @@ export default async function EspaceEquipePage({ searchParams }: PageProps) {
           <span className="text-blue-300/60 ml-1">(lecture seule)</span>
         </div>
       )}
+
+      {/* Notification badge — closers only */}
+      {closerNotifs.length > 0 && <NotificationBanner notifications={closerNotifs} />}
 
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">

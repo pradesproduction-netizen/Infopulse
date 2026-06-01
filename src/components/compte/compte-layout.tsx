@@ -65,7 +65,7 @@ export function CompteLayout({ profile, objective, programs, userEmail, userId, 
         {activeTab === 'objectifs' && <ObjectivesSection objective={objective} userId={userId} />}
         {activeTab === 'programmes' && <ProgramsSection programs={programs} subscriptionPlan={profile?.subscription_plan ?? null} />}
         {activeTab === 'ressources' && <ResourcesSection userId={userId} />}
-        {activeTab === 'integrations' && <IntegrationsSection />}
+        {activeTab === 'integrations' && <IntegrationsSection userId={userId} tallyBaseUrl={profile?.tally_base_url} />}
         {activeTab === 'securite' && <SecuritySection userEmail={userEmail} />}
       </div>
     </div>

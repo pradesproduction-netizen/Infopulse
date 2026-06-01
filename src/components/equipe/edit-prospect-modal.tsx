@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Copy, ExternalLink, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Prospect } from '@/lib/types'
 
@@ -36,11 +36,29 @@ interface EditProspectModalProps {
   open: boolean
   onClose: () => void
   onSaved: (updated: Prospect) => void
+  closers?: { id: string; full_name: string }[]
+  tallyBaseUrl?: string | null
 }
 
-export function EditProspectModal({ prospect, open, onClose, onSaved }: EditProspectModalProps) {
+function generateTallyLink(
+  base: string | null | undefined,
+  name: string,
+  email: string | null,
+  closerName: string | null
+): string | null {
+  if (!base?.trim()) return null
+  const params = new URLSearchParams()
+  if (name) params.set('prospect_name', name)
+  if (email) params.set('prospect_email', email)
+  if (closerName) params.set('assigned_closer', closerName)
+  const qs = params.toString()
+  return qs ? `${base}?${qs}` : base
+}
+
+export function EditProspectModal({ prospect, open, onClose, onSaved, closers = [], tallyBaseUrl }: EditProspectModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -51,6 +69,9 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
     instagram_url: '',
     linkedin_url: '',
     notes: '',
+    assigned_closer_id: '',
+    rdv_r1_date: '',
+    rdv_r2_date: '',
   })
 
   useEffect(() => {
@@ -65,10 +86,24 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
         instagram_url: prospect.instagram_url ?? '',
         linkedin_url: prospect.linkedin_url ?? '',
         notes: prospect.notes ?? '',
+        assigned_closer_id: prospect.assigned_closer_id ?? '',
+        rdv_r1_date: prospect.rdv_r1_date ?? '',
+        rdv_r2_date: prospect.rdv_r2_date ?? '',
       })
       setError(null)
     }
   }, [open, prospect])
+
+  const selectedCloser = closers.find((c) => c.id === form.assigned_closer_id)
+  const closerName = selectedCloser?.full_name ?? null
+  const generatedTallyLink = generateTallyLink(tallyBaseUrl, form.full_name, form.email || null, closerName)
+
+  async function handleCopyTally() {
+    if (!generatedTallyLink) return
+    await navigator.clipboard.writeText(generatedTallyLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -88,6 +123,10 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
         instagram_url: form.instagram_url.trim() || null,
         linkedin_url: form.linkedin_url.trim() || null,
         notes: form.notes.trim() || null,
+        assigned_closer_id: form.assigned_closer_id || null,
+        rdv_r1_date: form.rdv_r1_date || null,
+        rdv_r2_date: form.rdv_r2_date || null,
+        tally_link: generatedTallyLink,
       }),
     })
 
@@ -114,7 +153,7 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier le prospect</DialogTitle>
         </DialogHeader>
@@ -218,6 +257,90 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
               </SelectContent>
             </Select>
           </div>
+
+          {/* R1 / R2 dates */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="ep_r1_date">Date R1 booké</Label>
+              <Input
+                id="ep_r1_date"
+                type="date"
+                value={form.rdv_r1_date}
+                onChange={(e) => setForm((f) => ({ ...f, rdv_r1_date: e.target.value }))}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ep_r2_date">Date R2 booké</Label>
+              <Input
+                id="ep_r2_date"
+                type="date"
+                value={form.rdv_r2_date}
+                onChange={(e) => setForm((f) => ({ ...f, rdv_r2_date: e.target.value }))}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          {/* Assigned closer */}
+          {closers.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="ep_closer">Closer attribué</Label>
+              <Select
+                value={form.assigned_closer_id}
+                onValueChange={(v) => setForm((f) => ({ ...f, assigned_closer_id: v }))}
+              >
+                <SelectTrigger id="ep_closer" disabled={loading}>
+                  <SelectValue placeholder="Aucun closer attribué" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun</SelectItem>
+                  {closers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Tally link */}
+          {tallyBaseUrl && (
+            <div className="space-y-2">
+              <Label>Lien Tally (généré automatiquement)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={generatedTallyLink ?? ''}
+                  readOnly
+                  className="text-xs text-muted-foreground font-mono"
+                  placeholder="Remplis le nom du prospect pour générer le lien"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="flex-shrink-0 border-white/10"
+                  onClick={handleCopyTally}
+                  disabled={!generatedTallyLink}
+                  title="Copier"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+                {generatedTallyLink && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="flex-shrink-0 border-white/10"
+                    onClick={() => window.open(generatedTallyLink, '_blank')}
+                    title="Ouvrir"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="ep_notes">Notes</Label>
             <Textarea
@@ -240,7 +363,7 @@ export function EditProspectModal({ prospect, open, onClose, onSaved }: EditPros
             </Button>
             <Button type="submit" disabled={loading || !form.full_name.trim()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sauvegarder
+              Enregistrer
             </Button>
           </DialogFooter>
         </form>

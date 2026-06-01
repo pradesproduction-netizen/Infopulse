@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { MemberProfileHeader } from '@/components/equipe/member-profile-header'
 import { MemberKpiCards } from '@/components/equipe/member-kpi-cards'
 import { MemberPipeline } from '@/components/equipe/member-pipeline'
@@ -126,11 +127,15 @@ export default async function MemberProfilePage({ params }: PageProps) {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-  const [{ data: member }, { data: calls }, { data: prospects }, { data: monthKpis }] = await Promise.all([
+  const admin = createAdminClient()
+
+  const [{ data: member }, { data: calls }, { data: prospects }, { data: monthKpis }, { data: closers }, { data: profile }] = await Promise.all([
     supabase.from('team_members').select('*').eq('id', memberId).eq('infopreneur_id', user.id).single(),
     supabase.from('calls').select('*').eq('team_member_id', memberId).eq('infopreneur_id', user.id).order('call_date', { ascending: false }),
     supabase.from('prospects').select('*').eq('infopreneur_id', user.id).eq('team_member_id', memberId),
     supabase.from('daily_kpis').select('*').eq('team_member_id', memberId).gte('date', monthStart).lte('date', monthEnd),
+    admin.from('team_members').select('id, full_name').eq('infopreneur_id', user.id).eq('role', 'closer').eq('active', true),
+    supabase.from('profiles').select('tally_base_url').eq('id', user.id).maybeSingle(),
   ])
 
   if (!member) notFound()
@@ -162,7 +167,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
 
       <MemberKpiCards initialProspects={prospects ?? []} teamMemberId={memberId} />
       <PerformanceChart calls={(calls ?? []).map((c) => ({ call_date: c.call_date, status: c.status }))} />
-      <MemberPipeline prospects={prospects ?? []} memberId={memberId} />
+      <MemberPipeline prospects={prospects ?? []} memberId={memberId} closers={closers ?? []} tallyBaseUrl={profile?.tally_base_url ?? null} />
       <MemberCallsList calls={calls ?? []} />
     </div>
   )
