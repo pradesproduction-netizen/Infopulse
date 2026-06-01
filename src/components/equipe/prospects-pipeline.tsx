@@ -37,14 +37,15 @@ const COLUMNS: {
   headerClass: string
   badgeClass: string
 }[] = [
-  { stage: 'Nouveau lead', label: 'Nouveau lead', borderColor: 'border-slate-500/30', headerClass: 'bg-slate-500/10 text-slate-300', badgeClass: 'bg-slate-500/10 text-slate-300 border-slate-500/30' },
-  { stage: 'Set en cours', label: 'Set en cours', borderColor: 'border-blue-500/30', headerClass: 'bg-blue-500/10 text-blue-300', badgeClass: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
-  { stage: 'RDV booké', label: 'RDV booké', borderColor: 'border-violet-500/30', headerClass: 'bg-violet-500/10 text-violet-300', badgeClass: 'bg-violet-500/10 text-violet-300 border-violet-500/30' },
-  { stage: 'No show', label: 'No show', borderColor: 'border-orange-500/30', headerClass: 'bg-orange-500/10 text-orange-300', badgeClass: 'bg-orange-500/10 text-orange-300 border-orange-500/30' },
-  { stage: 'Proposition envoyée', label: 'Proposition envoyée', borderColor: 'border-yellow-500/30', headerClass: 'bg-yellow-500/10 text-yellow-300', badgeClass: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30' },
-  { stage: 'Follow-up', label: 'Follow-up', borderColor: 'border-sky-500/30', headerClass: 'bg-sky-500/10 text-sky-300', badgeClass: 'bg-sky-500/10 text-sky-300 border-sky-500/30' },
-  { stage: 'Gagné', label: 'Gagné', borderColor: 'border-green-500/30', headerClass: 'bg-green-500/10 text-green-300', badgeClass: 'bg-green-500/10 text-green-300 border-green-500/30' },
-  { stage: 'Perdu', label: 'Perdu', borderColor: 'border-red-500/30', headerClass: 'bg-red-500/10 text-red-300', badgeClass: 'bg-red-500/10 text-red-300 border-red-500/30' },
+  { stage: 'nouveau_lead', label: 'Nouveau lead', borderColor: 'border-slate-500/30', headerClass: 'bg-slate-500/10 text-slate-300', badgeClass: 'bg-slate-500/10 text-slate-300 border-slate-500/30' },
+  { stage: 'set_en_cours', label: 'Set en cours', borderColor: 'border-blue-500/30', headerClass: 'bg-blue-500/10 text-blue-300', badgeClass: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
+  { stage: 'r1_booke', label: 'R1 booké', borderColor: 'border-violet-500/30', headerClass: 'bg-violet-500/10 text-violet-300', badgeClass: 'bg-violet-500/10 text-violet-300 border-violet-500/30' },
+  { stage: 'r1_noshow', label: 'R1 no-show', borderColor: 'border-orange-500/30', headerClass: 'bg-orange-500/10 text-orange-300', badgeClass: 'bg-orange-500/10 text-orange-300 border-orange-500/30' },
+  { stage: 'r2_booke', label: 'R2 booké', borderColor: 'border-indigo-500/30', headerClass: 'bg-indigo-500/10 text-indigo-300', badgeClass: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' },
+  { stage: 'r2_show', label: 'R2 show', borderColor: 'border-cyan-500/30', headerClass: 'bg-cyan-500/10 text-cyan-300', badgeClass: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' },
+  { stage: 'follow_up', label: 'Follow-up', borderColor: 'border-sky-500/30', headerClass: 'bg-sky-500/10 text-sky-300', badgeClass: 'bg-sky-500/10 text-sky-300 border-sky-500/30' },
+  { stage: 'signes', label: 'Signés', borderColor: 'border-green-500/30', headerClass: 'bg-green-500/10 text-green-300', badgeClass: 'bg-green-500/10 text-green-300 border-green-500/30' },
+  { stage: 'perdu', label: 'Perdu', borderColor: 'border-red-500/30', headerClass: 'bg-red-500/10 text-red-300', badgeClass: 'bg-red-500/10 text-red-300 border-red-500/30' },
 ]
 
 const STAGE_ORDER = COLUMNS.map((c) => c.stage)
@@ -131,7 +132,7 @@ function ProspectCardContent({ prospect, badgeClass }: { prospect: Prospect; bad
       )}
 
       {/* Client actif badge + link — only in Gagné column */}
-      {prospect.client_id && prospect.pipeline_stage === 'Gagné' && (
+      {prospect.client_id && prospect.pipeline_stage === 'signes' && (
         <div
           className="mt-2 flex items-center gap-1.5"
           onClick={(e) => e.stopPropagation()}
@@ -296,7 +297,7 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
         body: JSON.stringify({ pipeline_stage: newStage }),
       })
       if (!res.ok) { router.refresh(); return }
-      if (newStage === 'Gagné') {
+      if (newStage === 'signes') {
         const data = await res.json()
         const clientId = data.client_id as string | undefined
         if (clientId) {

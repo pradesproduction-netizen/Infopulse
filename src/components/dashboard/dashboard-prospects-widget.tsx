@@ -101,7 +101,7 @@ export function DashboardProspectsWidget({
           <StatCard
             title="Appels prévus"
             value={String(rdvBooke)}
-            sub={rdvBooke > 0 ? `RDV booké${rdvBooke !== 1 ? 's' : ''}` : 'Aucun RDV planifié'}
+            sub={rdvBooke > 0 ? `R1 booké${rdvBooke !== 1 ? 's' : ''}` : 'Aucun R1 planifié'}
             icon={Phone}
             iconBg="bg-blue-500"
             onClick={() => setOpenPanel('rdv_booke')}

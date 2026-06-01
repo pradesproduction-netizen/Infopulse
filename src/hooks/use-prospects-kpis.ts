@@ -25,7 +25,7 @@ export function useProspectsKpis(infopreneurId: string): ProspectsKpis {
           .from('prospects')
           .select('estimated_value')
           .eq('infopreneur_id', infopreneurId)
-          .eq('pipeline_stage', 'Gagné')
+          .eq('pipeline_stage', 'signes')
           .gte('updated_at', startOfMonth)
           .lt('updated_at', startOfNextMonth),
         supabase
@@ -36,7 +36,7 @@ export function useProspectsKpis(infopreneurId: string): ProspectsKpis {
           .from('prospects')
           .select('*', { count: 'exact', head: true })
           .eq('infopreneur_id', infopreneurId)
-          .eq('pipeline_stage', 'RDV booké'),
+          .eq('pipeline_stage', 'r1_booke'),
       ])
 
       setKpis({

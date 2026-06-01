@@ -7,9 +7,9 @@ import { TrendingUp, Target, Calendar, UserCheck, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Prospect } from '@/lib/types'
 
-// Stages that indicate the prospect showed up (call was honored)
+// Stages that indicate the prospect showed up to at least one call
 const HONORED_STAGES: Prospect['pipeline_stage'][] = [
-  'Proposition envoyée', 'Follow-up', 'Gagné', 'Perdu',
+  'r2_booke', 'r2_show', 'follow_up', 'signes', 'perdu',
 ]
 
 interface MemberKpiCardsProps {
@@ -39,9 +39,9 @@ function KpiCard({ title, value, sub, icon: Icon, iconBg }: {
 
 function computeKpis(prospects: Prospect[]) {
   const total = prospects.length
-  const won = prospects.filter((p) => p.pipeline_stage === 'Gagné').length
-  const scheduled = prospects.filter((p) => p.pipeline_stage === 'RDV booké').length
-  const noShows = prospects.filter((p) => p.pipeline_stage === 'No show').length
+  const won = prospects.filter((p) => p.pipeline_stage === 'signes').length
+  const scheduled = prospects.filter((p) => p.pipeline_stage === 'r1_booke').length
+  const noShows = prospects.filter((p) => p.pipeline_stage === 'r1_noshow').length
   const honored = prospects.filter((p) => HONORED_STAGES.includes(p.pipeline_stage)).length
   const closingRate = total > 0 ? Math.round((won / total) * 100) : 0
   const showUpRate = honored + noShows > 0 ? Math.round((honored / (honored + noShows)) * 100) : 0
@@ -101,14 +101,14 @@ export function MemberKpiCards({ initialProspects, teamMemberId }: MemberKpiCard
     {
       title: 'Taux de closing',
       value: `${closingRate}%`,
-      sub: 'Prospects → Gagnés',
+      sub: 'Prospects → Signés',
       icon: Target,
       iconBg: 'bg-green-600',
     },
     {
       title: 'Appels planifiés',
       value: String(scheduled),
-      sub: 'Étape RDV booké',
+      sub: 'Étape R1 booké',
       icon: Calendar,
       iconBg: 'bg-blue-500',
     },
@@ -122,7 +122,7 @@ export function MemberKpiCards({ initialProspects, teamMemberId }: MemberKpiCard
     {
       title: 'No-shows',
       value: String(noShows),
-      sub: 'Étape No show',
+      sub: 'Étape R1 no-show',
       icon: XCircle,
       iconBg: 'bg-red-500',
     },

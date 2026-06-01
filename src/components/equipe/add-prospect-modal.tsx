@@ -25,14 +25,15 @@ const SOURCES = [
 ]
 
 const STAGES: { value: Prospect['pipeline_stage']; label: string }[] = [
-  { value: 'Nouveau lead', label: 'Nouveau lead' },
-  { value: 'Set en cours', label: 'Set en cours' },
-  { value: 'RDV booké', label: 'RDV booké' },
-  { value: 'No show', label: 'No show' },
-  { value: 'Proposition envoyée', label: 'Proposition envoyée' },
-  { value: 'Follow-up', label: 'Follow-up' },
-  { value: 'Gagné', label: 'Gagné' },
-  { value: 'Perdu', label: 'Perdu' },
+  { value: 'nouveau_lead', label: 'Nouveau lead' },
+  { value: 'set_en_cours', label: 'Set en cours' },
+  { value: 'r1_booke', label: 'R1 booké' },
+  { value: 'r1_noshow', label: 'R1 no-show' },
+  { value: 'r2_booke', label: 'R2 booké' },
+  { value: 'r2_show', label: 'R2 show' },
+  { value: 'follow_up', label: 'Follow-up' },
+  { value: 'signes', label: 'Signés' },
+  { value: 'perdu', label: 'Perdu' },
 ]
 
 export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalProps) {

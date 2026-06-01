@@ -24,7 +24,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return Response.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
-  // Find matching prospect: Gagné + same email (primary), fallback to same full_name
+  // Find matching prospect: signes + same email (primary), fallback to same full_name
   let prospect: { id: string; full_name: string } | null = null
 
   if (client.email) {
@@ -32,7 +32,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       .from('prospects')
       .select('id, full_name')
       .eq('infopreneur_id', client.infopreneur_id)
-      .eq('pipeline_stage', 'Gagné')
+      .eq('pipeline_stage', 'signes')
       .eq('email', client.email)
       .maybeSingle()
     prospect = data
@@ -43,7 +43,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       .from('prospects')
       .select('id, full_name')
       .eq('infopreneur_id', client.infopreneur_id)
-      .eq('pipeline_stage', 'Gagné')
+      .eq('pipeline_stage', 'signes')
       .eq('full_name', client.full_name)
       .maybeSingle()
     prospect = data

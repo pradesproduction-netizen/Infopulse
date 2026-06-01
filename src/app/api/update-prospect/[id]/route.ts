@@ -26,7 +26,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const admin = createAdminClient()
-  const becomingGagne = updates.pipeline_stage === 'Gagné'
+  const becomingGagne = updates.pipeline_stage === 'signes'
 
   // Infopreneur path — RLS handles authorization
   const { data } = await supabase
@@ -114,10 +114,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     if (!member) return Response.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
-  // If prospect was 'Gagné', cascade-delete the matching client (email first, full_name fallback)
+  // If prospect was 'signes', cascade-delete the matching client (email first, full_name fallback)
   let client_deleted = false
   let client_name: string | undefined
-  if (prospect.pipeline_stage === 'Gagné') {
+  if (prospect.pipeline_stage === 'signes') {
     let existingClient: { id: string; full_name: string } | null = null
 
     if (prospect.email) {

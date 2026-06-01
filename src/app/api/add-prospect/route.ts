@@ -37,8 +37,8 @@ export async function POST(request: Request) {
   revalidatePath('/dashboard/equipe', 'layout')
   revalidatePath('/dashboard', 'page')
 
-  // Auto-create client when prospect is directly added to 'Gagné'
-  if (pipeline_stage === 'Gagné') {
+  // Auto-create client when prospect is directly added to 'signes'
+  if (pipeline_stage === 'signes') {
     const admin = createAdminClient()
     const clientResult = await maybeCreateClient(
       {

@@ -128,7 +128,7 @@ export interface Prospect {
   phone: string | null
   source: string | null
   estimated_value: number | null
-  pipeline_stage: 'Nouveau lead' | 'Set en cours' | 'RDV booké' | 'No show' | 'Proposition envoyée' | 'Follow-up' | 'Gagné' | 'Perdu'
+  pipeline_stage: 'nouveau_lead' | 'set_en_cours' | 'r1_booke' | 'r1_noshow' | 'r2_booke' | 'r2_show' | 'follow_up' | 'signes' | 'perdu'
   team_member_id: string | null
   client_id: string | null
   instagram_url: string | null

@@ -97,7 +97,7 @@ export function NewClientButton() {
         })
       }
 
-      // Link matching prospect: if a prospect with the same email exists, move it to Gagné and set client_id
+      // Link matching prospect: if a prospect with the same email exists, move it to Signés and set client_id
       if (newClient && formData.email) {
         const { data: matchingProspect } = await supabase
           .from('prospects')
@@ -108,7 +108,7 @@ export function NewClientButton() {
         if (matchingProspect) {
           await supabase
             .from('prospects')
-            .update({ pipeline_stage: 'Gagné', client_id: newClient.id })
+            .update({ pipeline_stage: 'signes', client_id: newClient.id })
             .eq('id', matchingProspect.id)
         }
       }

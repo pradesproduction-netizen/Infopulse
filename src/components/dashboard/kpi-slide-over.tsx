@@ -83,7 +83,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
         .from('prospects')
         .select('id, full_name, estimated_value, updated_at, email')
         .eq('infopreneur_id', infopreneurId)
-        .eq('pipeline_stage', 'Gagné')
+        .eq('pipeline_stage', 'signes')
         .gte('updated_at', startOfMonth)
         .lt('updated_at', startOfNextMonth)
         .order('estimated_value', { ascending: false })
@@ -111,7 +111,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
         .from('prospects')
         .select('id, full_name, estimated_value, updated_at')
         .eq('infopreneur_id', infopreneurId)
-        .eq('pipeline_stage', 'RDV booké')
+        .eq('pipeline_stage', 'r1_booke')
         .order('updated_at', { ascending: false })
         .then(({ data }) => {
           setProspects((data ?? []) as ProspectItem[])
@@ -370,7 +370,7 @@ export function KpiSlideOver({ type, infopreneurId, onClose, upcomingPayments: u
               <p className="text-sm text-muted-foreground text-center py-16">
                 {type === 'ca_mois'
                   ? 'Aucun prospect gagné ce mois-ci.'
-                  : 'Aucun RDV booké pour le moment.'}
+                  : 'Aucun R1 booké pour le moment.'}
               </p>
             ) : (
               <ul className="space-y-2">
