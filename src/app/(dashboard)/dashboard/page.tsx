@@ -40,9 +40,8 @@ export default async function DashboardPage() {
     { data: paymentsToChaseRaw },
     { data: upcomingPayments },
     { data: weekKpis },
-    { data: r1ProspectsRaw, error: r1Error },
-    { data: r2ProspectsRaw, error: r2Error },
-    { data: debugProspects },
+    { data: r1ProspectsRaw },
+    { data: r2ProspectsRaw },
   ] = await Promise.all([
     supabase.from('objectives').select('*')
       .eq('infopreneur_id', user.id)
@@ -69,23 +68,17 @@ export default async function DashboardPage() {
       .gte('date', mondayStr)
       .lte('date', sundayStr),
     supabase.from('prospects')
-      .select('id, full_name, rdv_r1_date, team_members(full_name)')
+      .select('id, full_name, rdv_r1_date, team_members!prospects_team_member_id_fkey(full_name)')
       .eq('infopreneur_id', user.id)
       .gte('rdv_r1_date', monthStart)
       .lte('rdv_r1_date', monthEnd)
       .order('rdv_r1_date', { ascending: true }),
     supabase.from('prospects')
-      .select('id, full_name, rdv_r2_date, team_members(full_name)')
+      .select('id, full_name, rdv_r2_date, team_members!prospects_team_member_id_fkey(full_name)')
       .eq('infopreneur_id', user.id)
       .gte('rdv_r2_date', monthStart)
       .lte('rdv_r2_date', monthEnd)
       .order('rdv_r2_date', { ascending: true }),
-    // DEBUG — sans filtre date pour voir tous les prospects avec rdv_ renseignés
-    supabase.from('prospects')
-      .select('id, full_name, rdv_r1_date, rdv_r2_date, infopreneur_id')
-      .eq('infopreneur_id', user.id)
-      .or('rdv_r1_date.not.is.null,rdv_r2_date.not.is.null')
-      .limit(10),
   ])
 
   const upcomingList = upcomingPayments ?? []
@@ -107,12 +100,6 @@ export default async function DashboardPage() {
   const caCollecteTarget = objective?.ca_collecte_target ?? 0
 
   const weekLabel = `Semaine du ${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} au ${sunday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
-
-  console.log('[dashboard] user.id:', user.id)
-  console.log('[dashboard] monthStart:', monthStart, 'monthEnd:', monthEnd)
-  console.log('[dashboard] r1ProspectsRaw:', JSON.stringify(r1ProspectsRaw), 'error:', r1Error?.message)
-  console.log('[dashboard] r2ProspectsRaw:', JSON.stringify(r2ProspectsRaw), 'error:', r2Error?.message)
-  console.log('[dashboard] debugProspects (tous rdv_ non-null):', JSON.stringify(debugProspects))
 
   const r1Prospects = (r1ProspectsRaw ?? []) as unknown as RdvProspect[]
   const r2Prospects = (r2ProspectsRaw ?? []) as unknown as RdvProspect[]
