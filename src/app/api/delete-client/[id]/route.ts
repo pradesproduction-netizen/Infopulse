@@ -70,6 +70,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return Response.json({ error: error.message }, { status: 500 })
   }
 
+  revalidatePath('/dashboard', 'page')
   revalidatePath('/dashboard/clients', 'page')
   return Response.json({ success: true, prospect_deleted, prospect_name, client_name: client.full_name })
 }
