@@ -99,6 +99,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     })
   }
 
+  revalidatePath('/dashboard', 'page')
+  revalidatePath('/dashboard/equipe', 'layout')
   revalidatePath('/espace-equipe/pipeline', 'page')
   return Response.json({ success: true, prospect: updated, ...clientResult })
 }
