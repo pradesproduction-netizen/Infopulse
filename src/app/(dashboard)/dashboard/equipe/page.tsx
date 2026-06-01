@@ -4,6 +4,8 @@ import { TeamProspectsKpi } from '@/components/equipe/team-prospects-kpi'
 import { TeamLeaderboard } from '@/components/equipe/team-leaderboard'
 import { TeamMembersGrid } from '@/components/equipe/team-members-grid'
 import { AddMemberModal } from '@/components/equipe/add-member-modal'
+import { ProspectsPipeline } from '@/components/equipe/prospects-pipeline'
+import type { Prospect } from '@/lib/types'
 
 export default async function EquipePage() {
   const supabase = await createClient()
@@ -15,7 +17,7 @@ export default async function EquipePage() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-  const [{ data: teamMembers }, { data: monthKpis }] = await Promise.all([
+  const [{ data: teamMembers }, { data: monthKpis }, { data: allProspects }, { data: closers }, { data: profile }] = await Promise.all([
     supabase.from('team_members').select('*').eq('infopreneur_id', user.id),
     supabase
       .from('daily_kpis')
@@ -23,6 +25,9 @@ export default async function EquipePage() {
       .eq('infopreneur_id', user.id)
       .gte('date', monthStart)
       .lte('date', monthEnd),
+    supabase.from('prospects').select('*').eq('infopreneur_id', user.id).order('created_at', { ascending: false }),
+    supabase.from('team_members').select('id, full_name').eq('infopreneur_id', user.id).eq('role', 'closer'),
+    supabase.from('profiles').select('tally_base_url').eq('id', user.id).single(),
   ])
 
   type KpiAgg = { team_member_id: string; messages_envoyes: number; reponses_recues: number; calls_bookes: number; showup: number; noshow: number; signe: number }
@@ -56,6 +61,11 @@ export default async function EquipePage() {
       <TeamProspectsKpi teamMembers={teamMembers ?? []} infopreneurId={user.id} />
       <TeamLeaderboard teamMembers={teamMembers ?? []} dailyKpis={monthKpis ?? []} />
       <TeamMembersGrid teamMembers={teamMembers ?? []} memberKpis={memberKpis} />
+      <ProspectsPipeline
+        prospects={(allProspects ?? []) as Prospect[]}
+        closers={closers ?? []}
+        tallyBaseUrl={profile?.tally_base_url ?? null}
+      />
     </div>
   )
 }
