@@ -7,13 +7,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, Copy, ExternalLink, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Prospect } from '@/lib/types'
 
 interface AddProspectModalProps {
   defaultStage: Prospect['pipeline_stage']
   assignedTo?: string | null
+  closers?: { id: string; full_name: string }[]
+  tallyBaseUrl?: string | null
 }
 
 const SOURCES = [
@@ -36,11 +38,27 @@ const STAGES: { value: Prospect['pipeline_stage']; label: string }[] = [
   { value: 'perdu', label: 'Perdu' },
 ]
 
-export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalProps) {
+function generateTallyLink(
+  base: string | null | undefined,
+  name: string,
+  email: string | null,
+  closerName: string | null
+): string | null {
+  if (!base?.trim()) return null
+  const params = new URLSearchParams()
+  if (name) params.set('prospect_name', name)
+  if (email) params.set('prospect_email', email)
+  if (closerName) params.set('assigned_closer', closerName)
+  const qs = params.toString()
+  return qs ? `${base}?${qs}` : base
+}
+
+export function AddProspectModal({ defaultStage, assignedTo, closers = [], tallyBaseUrl }: AddProspectModalProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -50,11 +68,33 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
     pipeline_stage: defaultStage,
     instagram_url: '',
     linkedin_url: '',
+    assigned_closer_id: '',
+    rdv_r1_date: '',
+    rdv_r2_date: '',
   })
 
   function reset() {
-    setForm({ full_name: '', email: '', phone: '', source: '', estimated_value: '', pipeline_stage: defaultStage, instagram_url: '', linkedin_url: '' })
+    setForm({
+      full_name: '', email: '', phone: '', source: '', estimated_value: '',
+      pipeline_stage: defaultStage, instagram_url: '', linkedin_url: '',
+      assigned_closer_id: '', rdv_r1_date: '', rdv_r2_date: '',
+    })
     setError(null)
+  }
+
+  const selectedCloser = closers.find((c) => c.id === form.assigned_closer_id)
+  const generatedTallyLink = generateTallyLink(
+    tallyBaseUrl,
+    form.full_name,
+    form.email || null,
+    selectedCloser?.full_name ?? null
+  )
+
+  async function handleCopyTally() {
+    if (!generatedTallyLink) return
+    await navigator.clipboard.writeText(generatedTallyLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -75,6 +115,10 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
         instagram_url: form.instagram_url.trim() || null,
         linkedin_url: form.linkedin_url.trim() || null,
         team_member_id: assignedTo ?? null,
+        assigned_closer_id: form.assigned_closer_id || null,
+        rdv_r1_date: form.rdv_r1_date || null,
+        rdv_r2_date: form.rdv_r2_date || null,
+        tally_link: generatedTallyLink,
       }),
     })
 
@@ -114,7 +158,7 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
       </Button>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset() }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nouveau prospect</DialogTitle>
           </DialogHeader>
@@ -218,6 +262,90 @@ export function AddProspectModal({ defaultStage, assignedTo }: AddProspectModalP
                 </SelectContent>
               </Select>
             </div>
+
+            {/* R1 / R2 dates */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="p_r1_date">Date R1 booké</Label>
+                <Input
+                  id="p_r1_date"
+                  type="date"
+                  value={form.rdv_r1_date}
+                  onChange={(e) => setForm((f) => ({ ...f, rdv_r1_date: e.target.value }))}
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="p_r2_date">Date R2 booké</Label>
+                <Input
+                  id="p_r2_date"
+                  type="date"
+                  value={form.rdv_r2_date}
+                  onChange={(e) => setForm((f) => ({ ...f, rdv_r2_date: e.target.value }))}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            {/* Assigned closer */}
+            {closers.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="p_closer">Closer attribué</Label>
+                <Select
+                  value={form.assigned_closer_id}
+                  onValueChange={(v) => setForm((f) => ({ ...f, assigned_closer_id: v }))}
+                >
+                  <SelectTrigger id="p_closer" disabled={loading}>
+                    <SelectValue placeholder="Aucun closer attribué" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Aucun</SelectItem>
+                    {closers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Tally link */}
+            {tallyBaseUrl && (
+              <div className="space-y-2">
+                <Label>Lien Tally (généré automatiquement)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={generatedTallyLink ?? ''}
+                    readOnly
+                    className="text-xs text-muted-foreground font-mono"
+                    placeholder="Remplis le nom du prospect pour générer le lien"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="flex-shrink-0 border-white/10"
+                    onClick={handleCopyTally}
+                    disabled={!generatedTallyLink}
+                    title="Copier"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                  {generatedTallyLink && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="flex-shrink-0 border-white/10"
+                      onClick={() => window.open(generatedTallyLink, '_blank')}
+                      title="Ouvrir"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {error && (
               <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
                 ⚠️ {error}

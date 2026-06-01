@@ -245,6 +245,8 @@ function DroppableColumn({
   memberId,
   noAdd,
   closerMap,
+  closers,
+  tallyBaseUrl,
 }: {
   col: typeof COLUMNS[number]
   prospects: Prospect[]
@@ -254,6 +256,8 @@ function DroppableColumn({
   memberId?: string
   noAdd?: boolean
   closerMap: Map<string, string>
+  closers: { id: string; full_name: string }[]
+  tallyBaseUrl?: string | null
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.stage })
 
@@ -282,7 +286,7 @@ function DroppableColumn({
       </div>
       {!noAdd && (
         <div className="px-2 pb-2">
-          <AddProspectModal defaultStage={col.stage} assignedTo={memberId} />
+          <AddProspectModal defaultStage={col.stage} assignedTo={memberId} closers={closers} tallyBaseUrl={tallyBaseUrl} />
         </div>
       )}
     </div>
@@ -393,6 +397,8 @@ export function ProspectsPipeline({ prospects: initialProspects, memberId, noAdd
                 memberId={memberId}
                 noAdd={noAdd}
                 closerMap={closerMap}
+                closers={closers}
+                tallyBaseUrl={tallyBaseUrl}
               />
             ))}
           </div>
