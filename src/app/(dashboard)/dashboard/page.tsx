@@ -72,12 +72,14 @@ export default async function DashboardPage() {
       .eq('infopreneur_id', user.id)
       .gte('rdv_r1_date', monthStart)
       .lte('rdv_r1_date', monthEnd)
+      .not('pipeline_stage', 'in', '("signes","perdu")')
       .order('rdv_r1_date', { ascending: true }),
     supabase.from('prospects')
       .select('id, full_name, rdv_r2_date, team_member_id')
       .eq('infopreneur_id', user.id)
       .gte('rdv_r2_date', monthStart)
       .lte('rdv_r2_date', monthEnd)
+      .not('pipeline_stage', 'in', '("signes","perdu")')
       .order('rdv_r2_date', { ascending: true }),
   ])
 
