@@ -17,7 +17,19 @@ export async function POST(request: Request) {
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
     .limit(1)
-  const infopreneurId = memberRows?.[0]?.infopreneur_id ?? user.id
+
+  let infopreneurId: string
+  if (memberRows && memberRows.length > 0) {
+    // Caller is a team member — must have a valid infopreneur_id
+    const resolved = memberRows[0]?.infopreneur_id
+    if (!resolved) {
+      return Response.json({ error: 'Compte membre non lié à un infopreneur. Contactez votre administrateur.' }, { status: 400 })
+    }
+    infopreneurId = resolved
+  } else {
+    // Caller is an infopreneur
+    infopreneurId = user.id
+  }
 
   const { full_name, email, phone, source, estimated_value, pipeline_stage, instagram_url, linkedin_url, team_member_id, assigned_closer_id, rdv_r1_date, rdv_r2_date, tally_link } = await request.json()
 
@@ -52,6 +64,8 @@ export async function POST(request: Request) {
 
   revalidatePath('/dashboard/equipe', 'layout')
   revalidatePath('/dashboard', 'page')
+  revalidatePath('/espace-equipe', 'layout')
+  revalidatePath('/espace-equipe/pipeline', 'page')
 
   // Auto-create client when prospect is directly added to 'signes'
   if (pipeline_stage === 'signes') {
